@@ -1,0 +1,2062 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engineering Monthly Dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* ============ tokens ============ */
+:root{
+  --bg:#F6F7F9; --panel:#FFFFFF; --panel2:#F9FAFB; --line:#E4E7EC; --line2:#F0F2F5;
+  --ink:#161B24; --ink2:#5B6474; --ink3:#8D95A5;
+  --accent:#1F4E78; --accent-soft:#EAF1F7;
+  --v-blue:#1F4E78; --v-red:#C00000; --v-neutral:#6B7280;
+  --warn:#B45309; --warn-bg:#FDF4E3; --warn-line:#F2DFB9;
+  --ok:#2E7D4F; --chip:#EEF1F5;
+  --shadow:0 1px 2px rgba(16,24,40,.05);
+  --grid:#EDF0F4; --tip-bg:#FFFFFF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12161C; --panel:#1A2029; --panel2:#1F2630; --line:#2A3240; --line2:#242B36;
+    --ink:#E9ECF2; --ink2:#A8B0BF; --ink3:#6E7787;
+    --accent:#7FB1E0; --accent-soft:#22303F;
+    --v-blue:#7FB1E0; --v-red:#F07A7A; --v-neutral:#8D95A5;
+    --warn:#E0A84E; --warn-bg:#2A2416; --warn-line:#4A3D1F;
+    --ok:#6FBF8F; --chip:#242B36;
+    --shadow:none; --grid:#232A35; --tip-bg:#242B36;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12161C; --panel:#1A2029; --panel2:#1F2630; --line:#2A3240; --line2:#242B36;
+  --ink:#E9ECF2; --ink2:#A8B0BF; --ink3:#6E7787;
+  --accent:#7FB1E0; --accent-soft:#22303F;
+  --v-blue:#7FB1E0; --v-red:#F07A7A; --v-neutral:#8D95A5;
+  --warn:#E0A84E; --warn-bg:#2A2416; --warn-line:#4A3D1F;
+  --ok:#6FBF8F; --chip:#242B36;
+  --shadow:none; --grid:#232A35; --tip-bg:#242B36;
+}
+/* ============ base ============ */
+*{box-sizing:border-box}
+body{background:var(--bg); color:var(--ink);
+  font:14px/1.55 "IBM Plex Sans KR","Malgun Gothic",sans-serif;}
+.mono{font-family:"IBM Plex Mono",Consolas,monospace}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit; cursor:pointer}
+select,input[type=text],input[type=search]{
+  font:inherit; color:var(--ink); background:var(--panel);
+  border:1px solid var(--line); border-radius:7px; padding:6px 10px;}
+select:focus,input:focus,button:focus-visible{outline:2px solid var(--accent); outline-offset:1px}
+.wrap{max-width:1640px; margin:0 auto; padding:18px 26px 60px}
+/* ============ topbar ============ */
+.topbar{display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap}
+.brand h1{margin:0; font-size:24px; font-weight:700; letter-spacing:-.3px; text-wrap:balance}
+.brand .sub{font-size:12.5px; color:var(--ink2); margin-top:2px}
+.controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.controls select{min-width:86px}
+.meta{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink3);
+  text-align:right; margin-top:6px; width:100%}
+.rule{border:none; border-top:1px solid var(--line); margin:12px 0 16px}
+.badge-admin{font-size:10px; font-weight:700; letter-spacing:.06em; color:var(--warn);
+  background:var(--warn-bg); border:1px solid var(--warn-line); border-radius:4px;
+  padding:2px 7px; vertical-align:3px; margin-left:8px}
+.store-chip{font-size:10.5px; letter-spacing:.04em; color:var(--ink3);
+  border:1px solid var(--line); border-radius:20px; padding:2px 9px}
+/* toggle */
+.toggle{display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink2); cursor:pointer; user-select:none}
+.toggle .tr{width:34px; height:19px; border-radius:10px; background:var(--line); position:relative; transition:background .15s}
+.toggle .tr::after{content:""; position:absolute; top:2px; left:2px; width:15px; height:15px;
+  border-radius:50%; background:var(--panel); transition:left .15s; box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.toggle.on .tr{background:var(--accent)}
+.toggle.on .tr::after{left:17px}
+/* nav */
+.tabs{display:flex; gap:2px; margin-top:14px; border-bottom:1px solid var(--line)}
+.tabs button{background:none; border:none; padding:8px 14px 9px; font-size:13.5px; color:var(--ink2);
+  border-bottom:2px solid transparent; margin-bottom:-1px}
+.tabs button.on{color:var(--ink); font-weight:700; border-bottom-color:var(--accent)}
+body.exec .tabs, body.exec .hide-exec{display:none !important}
+/* ============ KPI ============ */
+.kpis{display:grid; grid-template-columns:repeat(7,1fr); gap:12px; margin:16px 0 14px}
+.kpis4{grid-template-columns:repeat(4,1fr)}
+.kpi-col{display:flex; flex-direction:column; gap:12px}
+.kpi-col .kpi{flex:1}
+.kpi-span{display:flex; flex-direction:column; justify-content:center}
+@media(max-width:820px){.kpis4{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  padding:15px 17px 12px; box-shadow:var(--shadow)}
+.kpi .l{font-size:12.5px; color:var(--ink2)}
+.kpi .v{font-size:29px; font-weight:700; letter-spacing:-.5px; line-height:1.15; margin-top:4px}
+.kpi .v .u{font-size:12.5px; font-weight:500; color:var(--ink2); margin-left:4px}
+.kpi .s{font-size:11.5px; margin-top:5px; color:var(--ink3)}
+.kpi .s.blue{color:var(--v-blue); font-weight:700}
+.kpi .s.red{color:var(--v-red); font-weight:700}
+/* ============ panels & sections ============ */
+.grid{display:grid; grid-template-columns:3fr 2fr; gap:16px; align-items:start}
+@media(max-width:1100px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:10px;
+  padding:16px 18px; box-shadow:var(--shadow)}
+.sec-h{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px}
+.sec-h h2{margin:0; font-size:15.5px; font-weight:700}
+.sec-h .sub{font-size:11.5px; color:var(--ink3)}
+.banner{background:var(--warn-bg); border:1px solid var(--warn-line); color:var(--warn);
+  border-radius:8px; padding:9px 14px; font-size:13px; margin:0 0 14px}
+.section-gap{height:16px}
+/* ============ workload bars ============ */
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--ink2); margin:2px 0 12px}
+.legend .it{display:inline-flex; align-items:center; gap:6px}
+.legend .sw{width:11px; height:11px; border-radius:3px}
+/* 가로 Stacked Bar (데이터 레이블/축 24px) */
+.wl-row{display:grid; grid-template-columns:152px 1fr 104px; gap:10px; align-items:center; margin:9px 0}
+.wl-team{font-size:24px; color:var(--ink2); text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.wl-row.total .wl-team{font-weight:700; color:var(--ink)}
+.wl-row.total{padding-bottom:11px; border-bottom:1px solid var(--line); margin-bottom:11px}
+.wl-bar{display:flex; gap:2px; height:42px; border-radius:6px; overflow:hidden}
+.wl-sum{font-size:24px; font-weight:700; color:var(--ink2); white-space:nowrap}
+.wl-row.total .wl-sum{color:var(--ink)}
+.axis-x{display:grid; grid-template-columns:152px 1fr 104px; gap:10px; margin-top:2px}
+.axis-x .ticks{display:flex; justify-content:space-between; font-size:24px; font-weight:700; color:var(--ink2)}
+.wl-seg{display:flex; align-items:center; justify-content:center; min-width:0; cursor:pointer}
+.wl-seg span{font-size:24px; font-weight:600; color:#FFF; white-space:nowrap}
+.wl-seg.sel{box-shadow:inset 0 0 0 2px var(--ink)}
+/* 범례 변형: center=가운데정렬, sp=항목 간 넓은 간격, lg2=+2pt, big=+3pt */
+.legend.center{justify-content:center}
+.legend.sp{gap:36px}
+.legend.lg2{font-size:14px}
+.legend.lg2 .sw{width:12px; height:12px}
+.legend.big{font-size:15px}
+.legend.big .sw{width:13px; height:13px}
+.wlv{display:flex; gap:10px; margin-top:6px}
+.wlv-y{display:flex; flex-direction:column; justify-content:space-between;
+  height:260px; font-size:10.5px; color:var(--ink3); text-align:right;
+  flex:none; width:36px; padding-right:2px}
+.wlv-main{flex:1; min-width:0}
+.wlv-plot{display:grid; gap:14px; height:260px; align-items:end;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(to top, var(--line2) 1px, transparent 1px);
+  background-size:100% 20%}
+.wlv-stack{display:flex; flex-direction:column; justify-content:flex-end;
+  height:100%; position:relative}
+.wlv-sum{font-size:24px; font-weight:700; color:var(--ink2); text-align:center;
+  margin-bottom:3px}
+.wlv-seg{display:flex; align-items:center; justify-content:center;
+  border-radius:3px; margin-top:2px; min-height:2px}
+.wlv-seg span{font-size:11px; font-weight:600; color:#FFF; white-space:nowrap}
+.wlv-names{display:grid; gap:14px; margin-top:6px}
+.wlv-name{font-size:24px; color:var(--ink2); text-align:center;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.wlv-name.total{font-weight:700; color:var(--ink)}
+/* Modal */
+#modal{position:fixed; inset:0; z-index:100}
+.modal-bg{position:absolute; inset:0; background:rgba(15,20,28,.45)}
+.modal-panel{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  background:var(--panel); border:1px solid var(--line); border-radius:12px;
+  width:min(560px, 92vw); max-height:76vh; display:flex; flex-direction:column;
+  box-shadow:0 12px 40px rgba(0,0,0,.25)}
+#modal.wide .modal-panel{width:min(1000px, 96vw)}
+.modal-h{display:flex; justify-content:space-between; align-items:center; gap:10px;
+  padding:14px 18px; border-bottom:1px solid var(--line); font-weight:700; font-size:14.5px}
+#modal-body{padding:12px 18px 18px; overflow-y:auto}
+.wl-detail{background:var(--panel2); border:1px solid var(--line); border-radius:8px;
+  padding:10px 14px; margin:2px 0 10px 92px}
+.wl-detail-h{display:flex; justify-content:space-between; align-items:center;
+  font-size:12.5px; margin-bottom:8px; gap:10px}
+.wl-detail-items{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:4px 18px}
+.wl-detail-it{display:flex; justify-content:space-between; gap:10px; font-size:12px;
+  border-bottom:1px dashed var(--line2); padding:2px 0}
+.wl-detail-it span{color:var(--ink2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.wl-detail-it b{color:var(--ink)}
+.wl-detail-it.etc span{font-style:italic; color:var(--ink3)}
+/* 수행 프로젝트별 LOAD율 */
+.pj-row{display:grid; grid-template-columns:minmax(320px,560px) 1fr 108px; gap:10px; align-items:center; margin:7px 0; cursor:pointer; border-radius:6px}
+.pj-row.sel{background:var(--accent-soft)}
+.pj-name{font-size:24px; color:var(--ink2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:right}
+.pj-track{height:32px; display:flex; gap:2px; align-items:stretch}
+.pj-seg{border-radius:4px; min-width:2px; cursor:inherit}
+.pj-pct{font-size:24px; font-weight:600; color:var(--ink2); text-align:left}
+/* ============ fin table ============ */
+table.fin{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:4px}
+table.fin th{background:var(--panel2); color:var(--ink2); font-weight:600; font-size:11.5px;
+  padding:6px 8px; border-top:1px solid var(--line); border-bottom:1px solid var(--line); text-align:center}
+table.fin th.gl{border-left:1px solid var(--line)}
+table.fin td{padding:7px 8px; border-bottom:1px solid var(--line2); text-align:right; white-space:nowrap}
+table.fin td.cat{text-align:left; font-weight:600; color:var(--ink2); white-space:nowrap}
+table.fin td.var{font-weight:700}
+table.fin td.miss{color:var(--ink3); font-size:11.5px}
+.fin-note{font-size:11px; color:var(--ink3); margin-top:7px}
+.ovmark{color:var(--warn); font-weight:700}
+.u2{font-size:10px; color:var(--ink3); margin-left:2px; font-weight:400}
+/* ============ charts ============ */
+.chart{position:relative}
+.chart svg{display:block; width:100%; height:auto}
+.chips{display:flex; gap:6px; flex-wrap:wrap}
+.chip{border:1px solid var(--line); background:var(--panel); color:var(--ink2);
+  border-radius:16px; padding:3px 12px; font-size:12px}
+.chip.on{background:var(--accent-soft); border-color:var(--accent); color:var(--accent); font-weight:600}
+/* ============ insight ============ */
+.insights{display:flex; flex-direction:column; gap:6px}
+.insight{display:flex; gap:10px; align-items:baseline; font-size:13px}
+.insight .ic{font-size:9px; flex:none}
+/* ============ tables (detail) ============ */
+table.data{width:100%; border-collapse:collapse; font-size:12.5px}
+table.data th{background:var(--panel2); color:var(--ink2); font-weight:600; font-size:11.5px;
+  padding:6px 9px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap}
+table.data th:first-child, table.data td:first-child{text-align:left}
+table.data td{padding:6px 9px; border-bottom:1px solid var(--line2); text-align:right; white-space:nowrap}
+.tbl-scroll{overflow-x:auto}
+/* ============ buttons ============ */
+.btn{border:1px solid var(--line); background:var(--panel); color:var(--ink);
+  border-radius:7px; padding:7px 14px; font-size:13px}
+.btn:hover{border-color:var(--ink3)}
+.btn.pri{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
+:root[data-theme="dark"] .btn.pri, .btn.pri{color:#fff}
+.btn.pri:disabled{opacity:.45; cursor:not-allowed}
+.btn.sm{padding:4px 10px; font-size:12px}
+/* ============ upload ============ */
+.drop{border:1.5px dashed var(--line); border-radius:10px; padding:34px 20px; text-align:center;
+  color:var(--ink2); background:var(--panel2); cursor:pointer}
+.drop.on{border-color:var(--accent); background:var(--accent-soft)}
+.qlist{display:flex; flex-direction:column; gap:5px; font-size:12.5px}
+.q-ok{color:var(--ok)} .q-warn{color:var(--warn)} .q-err{color:var(--v-red)}
+.kv{display:grid; grid-template-columns:auto 1fr; gap:3px 14px; font-size:12.5px}
+.kv dt{color:var(--ink3)} .kv dd{margin:0}
+/* ============ misc ============ */
+.empty{ text-align:center; padding:80px 0; color:var(--ink2)}
+.empty b{display:block; font-size:17px; color:var(--ink); margin-bottom:6px}
+details.drill{margin-top:16px}
+details.drill summary{cursor:pointer; font-size:13px; color:var(--ink2); padding:6px 0}
+#tip{position:fixed; z-index:50; pointer-events:none; background:var(--tip-bg);
+  border:1px solid var(--line); border-radius:8px; padding:8px 11px; font-size:12px;
+  box-shadow:0 4px 14px rgba(0,0,0,.13); display:none; max-width:260px}
+#toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%); z-index:60;
+  background:var(--ink); color:var(--bg); border-radius:8px; padding:9px 18px;
+  font-size:13px; display:none; max-width:80vw}
+.form-row{display:grid; grid-template-columns:1.1fr .9fr .9fr 1fr; gap:10px; align-items:center;
+  padding:7px 0; border-bottom:1px solid var(--line2); font-size:13px}
+.form-row .lab{font-weight:600; color:var(--ink2)}
+.muted{color:var(--ink3)}
+.small{font-size:12px}
+@media print{
+  .tabs,.controls,.hide-print,#toast,#tip{display:none !important}
+  body{background:#fff}
+  .panel,.kpi{box-shadow:none}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+</style>
+<style>body{margin:0} [hidden]{display:none!important} img{max-width:100%}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="topbar">
+    <div class="brand">
+      <h1>Engineering Monthly Management Dashboard<span id="adminBadge"></span></h1>
+      <div class="sub">Engineering Division · Monthly Executive Review</div>
+    </div>
+    <div class="controls" id="controls"></div>
+    <div class="meta" id="meta"></div>
+  </header>
+  <nav class="tabs" id="tabs"></nav>
+  <main id="view"><div class="empty">데이터 연결 중…</div></main>
+</div>
+<div id="tip"></div>
+<div id="toast"></div>
+<div id="modal" hidden>
+  <div class="modal-bg" onclick="App.closeModal()"></div>
+  <div class="modal-panel">
+    <div class="modal-h"><span id="modal-title"></span>
+      <button class="btn sm" onclick="App.closeModal()">닫기 ✕</button></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+"use strict";
+/* =====================================================================
+   Engineering Monthly Management Dashboard  (browser-only, no server)
+   Excel(.xlsm/.xlsx) → SheetJS parsing → 정규화 → 공유 DB(또는 로컬 저장)
+   원본 Excel은 절대 수정하지 않으며, 관리자 수정은 Override로 분리 보존.
+===================================================================== */
+
+/* ---------- constants ---------- */
+const CATS = ["수행","지원","일반","견적"];
+const UNKNOWN = "미분류";
+const CAT_MAP = {"수행":"수행","지원":"지원","일반":"일반","하자보수":"일반","견적":"견적","영업":"견적"};
+const CAT_COLORS = {"수행":"#1F4E78","지원":"#5B9BD5","일반":"#A5A5A5","견적":"#ED7D31","미분류":"#C55A5A"};
+const ITEMS = [["labor_cost","인건비(공사원가)"],["labor_sga","인건비(판관비)"],["admin_expense","관리비(경비)"]];
+const ITEM_LABEL = Object.fromEntries(ITEMS);
+const FIN_EXCEL = {"원가":"labor_cost","판관비":"labor_sga","경비":"admin_expense"};
+const TEAM_PALETTE = ["#1F4E78","#5B9BD5","#ED7D31","#2E7D4F","#7A4FA3","#C00000","#8A6D1A","#5A6472"];
+const LABEL_MIN = 5.0, ABNORMAL_MH = 300, WON_THRESHOLD = 1e7;
+const MONTH_RE = /^(\d{1,2})\s*월$/;
+/* WORKLOAD 분석(팀별 Bar/순위)에서 제외하는 팀 — '전체' 집계에는 항상 포함 */
+const ANALYSIS_EXCLUDE = ["기술기획팀"];
+const TOTAL_LABEL = "전체";
+/* 팀 고정 정렬 순서 (기본순서). 목록에 없는 팀은 뒤에 등장 순서대로 */
+const TEAM_ORDER = ["공정팀","기계팀","배관팀","전기팀","계장팀","토건팀","공조소방팀"];
+const teamRank = n => { const i = TEAM_ORDER.indexOf(n); return i >= 0 ? i : 100; };
+/* 팀별 고유 색 (차분한 톤) — 프로젝트 팀별 투입률 등에서 사용 */
+const TEAM_COLORS = {
+  "공정팀":"#5B7C99","기계팀":"#8E9BA8","배관팀":"#7A9E9B","전기팀":"#A79178",
+  "계장팀":"#9489A8","토건팀":"#B0A489","공조소방팀":"#84A08F","기술기획팀":"#9AA3AF",
+};
+const teamColor = (n,i)=> TEAM_COLORS[n] || TEAM_PALETTE[i%TEAM_PALETTE.length];
+const PROJ_CATS = ["수행","지원"];   // 수행 프로젝트 = 업무구분 수행+지원
+const PROJ_MAX_ROWS = 7;
+
+/* ---------- tiny helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nf0 = v => v==null ? "-" : Number(v).toLocaleString("en-US",{maximumFractionDigits:0});
+const nf1 = v => v==null ? "미입력" : Number(v).toLocaleString("en-US",{minimumFractionDigits:1,maximumFractionDigits:1});
+const pct1 = v => v==null ? "-" : v.toFixed(1)+"%";
+const pp1 = v => v==null ? "-" : (v>=0?"+":"")+v.toFixed(1)+"%p";
+const sgn1 = v => v==null ? "-" : (v>=0?"+":"")+Number(v).toLocaleString("en-US",{minimumFractionDigits:1,maximumFractionDigits:1});
+const spct = v => v==null ? "-" : (v>=0?"+":"")+v.toFixed(1)+"%";
+const mkey = (y,m) => y+"-"+String(m).padStart(2,"0");
+const plabel = (y,m) => y+"."+String(m).padStart(2,"0");
+function toast(msg, ms=3200){ const t=$("#toast"); t.textContent=msg; t.style.display="block";
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.style.display="none", ms); }
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function varColorClass(item, v){
+  if(v==null || v===0) return "";
+  const inc = v>0;
+  if(item==="labor_cost") return inc ? "blue" : "red";
+  return inc ? "red" : "blue";
+}
+function varColorVar(item, v){
+  const c = varColorClass(item, v);
+  return c==="blue" ? "var(--v-blue)" : c==="red" ? "var(--v-red)" : "var(--v-neutral)";
+}
+
+/* ---------- state ---------- */
+const S = {
+  tab:"dash", sel:null, months:{}, financial:{}, overrides:[], files:{},
+  storeMode:null, ready:false, pending:null,
+  trendSel:"전체",
+  sort:"기본순서", projMode:"수행+지원", wlDetail:null, cumSel:null, cumExpand:false,
+  histA:null, histB:null, histFrom:null, histTo:null,
+  exec: location.hash==="#exec" || lsGet("emd-exec")!==false,   // 기본: Executive View ON
+  adminName: lsGet("emd-admin-name") || "admin",
+  canDownload:false,
+  feInclude: lsGet("emd-fe")!==false,   // 기본: FE 포함
+  projSel:null,
+};
+
+/* =====================================================================
+   Store — 공유 DB(claude db capability) 우선, 불가 시 브라우저 로컬 저장
+===================================================================== */
+const Store = {
+  db:null, mode:"none",
+  async init(){
+    let db = null;
+    try{ if(window.claude && window.claude.use) db = await window.claude.use("db"); }catch(e){}
+    if(db){
+      this.db = db; this.mode = "shared"; S.storeMode = "shared";
+      const onErr = e => { if(e && e.code!=="unavailable") console.warn("db", e); };
+      db.collection("months").onSnapshot(snap => {
+        S.months = {}; snap.docs.forEach(d => { if(d.exists) S.months[d.id]=d.data(); });
+        S.ready = true; ensureSel(); renderAll();
+      }, onErr);
+      db.collection("financial").onSnapshot(snap => {
+        S.financial = {}; snap.docs.forEach(d => { if(d.exists) S.financial[d.id]=d.data(); });
+        renderAll();
+      }, onErr);
+      db.collection("overrides").onSnapshot(snap => {
+        S.overrides = snap.docs.filter(d=>d.exists).map(d => ({id:d.id, ...d.data()}));
+        renderAll();
+      }, onErr);
+      db.collection("files").onSnapshot(snap => {
+        S.files = {}; snap.docs.forEach(d => { if(d.exists) S.files[d.id]=d.data(); });
+        renderAll();
+      }, onErr);
+      setTimeout(()=>{ if(!S.ready){ S.ready=true; ensureSel(); renderAll(); } }, 4000);
+    }else{
+      /* GitHub Pages 등 정적 게시: 같은 경로의 data.json이 있으면
+         조회 전용(static)으로 로드. 없으면 브라우저 로컬 저장(local). */
+      let staticData=null;
+      try{
+        const res=await fetch("data.json", {cache:"no-store"});
+        if(res.ok) staticData=await res.json();
+      }catch(e){}
+      if(staticData && staticData.months){
+        this.mode="static"; S.storeMode="static";
+        S.months=staticData.months||{}; S.financial=staticData.financial||{};
+        S.overrides=staticData.overrides||[]; S.files=staticData.files||{};
+        S.ready=true; ensureSel(); renderAll();
+      }else{
+        this.mode = "local"; S.storeMode = "local";
+        const d = lsGet("emd-data") || {};
+        S.months = d.months||{}; S.financial = d.financial||{};
+        S.overrides = d.overrides||[]; S.files = d.files||{};
+        S.ready = true; ensureSel(); renderAll();
+      }
+    }
+  },
+  _guardStatic(){
+    if(this.mode==="static"){
+      toast("게시본(조회 전용)에서는 데이터를 변경할 수 없습니다. 원본 Dashboard에서 수정 후 data.json을 다시 게시하십시오.", 5000);
+      throw new Error("static read-only");
+    }
+  },
+  _persistLocal(){
+    lsSet("emd-data", {months:S.months, financial:S.financial, overrides:S.overrides, files:S.files});
+  },
+  _werr(e){
+    if(e && (e.code==="invalid_argument" || e.code==="not_granted"))
+      toast("저장 권한이 없습니다. 이 Artifact의 편집 권한이 있는 계정만 데이터를 변경할 수 있습니다.", 4500);
+    else toast("저장 중 오류가 발생했습니다: "+(e && e.message || e), 4500);
+    throw e;
+  },
+  async saveMonth(doc){
+    this._guardStatic();
+    if(this.mode==="shared"){
+      try{ await this.db.doc("months/"+mkey(doc.year,doc.month)).set(doc); }catch(e){ this._werr(e); }
+    }else{ S.months[mkey(doc.year,doc.month)] = doc; this._persistLocal(); renderAll(); }
+  },
+  async mergeFinancial(year, plan, actual, sourceFile){
+    this._guardStatic();
+    const id = String(year);
+    const cur = (this.mode==="shared")
+      ? await this.db.doc("financial/"+id).get().then(s=>s.exists?s.data():null).catch(()=>null)
+      : (S.financial[id]||null);
+    const merged = { year, plan:{}, actual:{}, sourceFile, updatedAt:nowStr() };
+    for(const [k] of ITEMS){
+      const cp=(cur&&cur.plan&&cur.plan[k])||Array(12).fill(null);
+      const ca=(cur&&cur.actual&&cur.actual[k])||Array(12).fill(null);
+      const np=(plan&&plan[k])||Array(12).fill(null);
+      const na=(actual&&actual[k])||Array(12).fill(null);
+      merged.plan[k]  = np.map((v,i)=> v!=null ? v : cp[i]);           // 계획: 새 값 우선
+      merged.actual[k]= na.map((v,i)=> v!=null ? v : ca[i]);           // 실적: 입력된 값만 갱신
+    }
+    if(this.mode==="shared"){
+      try{ await this.db.doc("financial/"+id).set(merged); }catch(e){ this._werr(e); }
+    }else{ S.financial[id]=merged; this._persistLocal(); renderAll(); }
+  },
+  async addOverride(o){
+    this._guardStatic();
+    if(this.mode==="shared"){
+      try{
+        const dup = S.overrides.filter(x=>x.active && x.year===o.year && x.month===o.month && x.item===o.item && x.field===o.field);
+        for(const d of dup) await this.db.doc("overrides/"+d.id).update({active:false});
+        await this.db.collection("overrides").add(o);
+      }catch(e){ this._werr(e); }
+    }else{
+      S.overrides.forEach(x=>{ if(x.active && x.year===o.year && x.month===o.month && x.item===o.item && x.field===o.field) x.active=false; });
+      S.overrides.push({id:"L"+Date.now(), ...o}); this._persistLocal(); renderAll();
+    }
+  },
+  async cancelOverride(id){
+    this._guardStatic();
+    if(this.mode==="shared"){
+      try{ await this.db.doc("overrides/"+id).update({active:false}); }catch(e){ this._werr(e); }
+    }else{
+      const o=S.overrides.find(x=>x.id===id); if(o) o.active=false; this._persistLocal(); renderAll();
+    }
+  },
+  async saveFile(doc){
+    this._guardStatic();
+    if(this.mode==="shared"){
+      try{ await this.db.doc("files/"+doc.hash).set(doc); }catch(e){ this._werr(e); }
+    }else{ S.files[doc.hash]=doc; this._persistLocal(); renderAll(); }
+  },
+  async deleteMonth(y,m){
+    this._guardStatic();
+    /* 해당 월의 WORKLOAD 데이터와 Upload 이력을 삭제.
+       재무 연간 데이터(financial)는 다른 월 실적을 포함하므로 유지한다. */
+    const key=mkey(y,m);
+    if(this.mode==="shared"){
+      try{
+        await this.db.doc("months/"+key).delete();
+        const fs=await this.db.collection("files")
+          .where("year","==",y).where("month","==",m).get();
+        for(const d of fs.docs) await this.db.doc("files/"+d.id).delete();
+      }catch(e){ this._werr(e); }
+    }else{
+      delete S.months[key];
+      for(const [h,f] of Object.entries({...S.files}))
+        if(f.year===y && f.month===m) delete S.files[h];
+      this._persistLocal(); ensureSel(); renderAll();
+    }
+  },
+};
+function nowStr(){ const d=new Date(), p=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes()); }
+
+/* =====================================================================
+   계산 Logic (Python 버전과 동일 산식)
+===================================================================== */
+function periods(){ return Object.keys(S.months).sort().map(k=>({key:k, y:+k.slice(0,4), m:+k.slice(5)})); }
+function ensureSel(){
+  const ps = periods();
+  if(!ps.length){ S.sel=null; return; }
+  if(!S.sel || !S.months[mkey(S.sel.y,S.sel.m)]) S.sel = {y:ps[ps.length-1].y, m:ps[ps.length-1].m};
+}
+function prevPeriod(y,m){ return m===1 ? {y:y-1,m:12} : {y,m:m-1}; }
+
+function stValues(doc){
+  const set = new Set();
+  (doc.teams||[]).forEach(t => Object.keys(t.st||{}).forEach(s=>set.add(s)));
+  return [...set].sort();
+}
+/* 팀별 Category MH/비율.  stFilter 적용 시 분자/분모 동일 조건 */
+function teamTable(doc, stFilter, sort){
+  if(!doc) return {teams:[], cats:CATS.slice(), total:0, division:{}};
+  let hasUnknown = false;
+  const teams = (doc.teams||[]).map(t=>{
+    const catMH = {}; let total = 0;
+    for(const [st, cats] of Object.entries(t.st||{})){
+      if(stFilter && stFilter!=="전체" && st!==stFilter) continue;
+      if(!S.feInclude && st==="FE") continue;   // FE 제외 Toggle (모든 데이터 공통)
+      for(const [c,v] of Object.entries(cats)){
+        catMH[c]=(catMH[c]||0)+v; total+=v;
+        if(c===UNKNOWN && v>0) hasUnknown=true;
+      }
+    }
+    return {name:t.name, order:t.order, total, catMH};
+  }).filter(t=>t.total>0);
+  const cats = CATS.slice(); if(hasUnknown) cats.push(UNKNOWN);
+  teams.forEach(t=>{
+    t.pct = {}; cats.forEach(c=>{ t.pct[c] = t.total>0 ? (t.catMH[c]||0)/t.total*100 : 0; });
+  });
+  if(sort==="수행율 높은순") teams.sort((a,b)=>b.pct["수행"]-a.pct["수행"]);
+  else if(sort==="일반율 높은순") teams.sort((a,b)=>b.pct["일반"]-a.pct["일반"]);
+  else if(sort==="총 MH 높은순") teams.sort((a,b)=>b.total-a.total);
+  else teams.sort((a,b)=>(teamRank(a.name)-teamRank(b.name)) || (a.order-b.order));
+  const total = teams.reduce((s,t)=>s+t.total,0);
+  const division = {};
+  cats.forEach(c=>{ const mh = teams.reduce((s,t)=>s+(t.catMH[c]||0),0);
+    division[c] = {mh, pct: total>0 ? mh/total*100 : 0}; });
+  return {teams, cats, total, division};
+}
+
+function getFin(year){
+  const d = S.financial[String(year)];
+  const empty = () => Object.fromEntries(ITEMS.map(([k])=>[k, Array(12).fill(null)]));
+  if(!d) return {plan:empty(), actual:empty()};
+  const norm = src => Object.fromEntries(ITEMS.map(([k])=>[k, (src&&src[k]||Array(12).fill(null)).map(v=>v==null?null:v)]));
+  return {plan:norm(d.plan), actual:norm(d.actual)};
+}
+function activeOv(year){ return S.overrides.filter(o=>o.active && o.year===year); }
+function applyOv(plan, actual, ovs){
+  const p = Object.fromEntries(ITEMS.map(([k])=>[k, plan[k].slice()]));
+  const a = Object.fromEntries(ITEMS.map(([k])=>[k, actual[k].slice()]));
+  for(const o of ovs){
+    if(!(o.month>=1 && o.month<=12) || !(o.item in p)) continue;
+    (o.field==="plan" ? p : a)[o.item][o.month-1] = o.overrideValue;
+  }
+  return {plan:p, actual:a};
+}
+function ytdBasis(series, selM){
+  let b=0; for(let m=1;m<=selM;m++){ if(series[m-1]==null) break; b=m; } return b;
+}
+/* 재무 요약: 월/누계, 동일기간 비교, Override 적용 */
+function finSummary(year, month){
+  const {plan, actual} = getFin(year);
+  const ovs = activeOv(year);
+  const {plan:P, actual:A} = applyOv(plan, actual, ovs);
+  const rows=[]; const bases=new Set(); let missing=false;
+  for(const [item,label] of ITEMS){
+    const mPlan=P[item][month-1], mActual=A[item][month-1];
+    const mVar=(mPlan!=null&&mActual!=null)? mActual-mPlan : null;
+    const basis=ytdBasis(A[item], month);
+    let yPlan=null,yActual=null,yVar=null;
+    if(basis>0){
+      const ps=P[item].slice(0,basis), as=A[item].slice(0,basis);
+      if(ps.every(v=>v!=null)) yPlan=ps.reduce((s,v)=>s+v,0);
+      yActual=as.reduce((s,v)=>s+(v||0),0);
+      if(yPlan!=null) yVar=yActual-yPlan;
+      bases.add(basis);
+    }
+    const ovA=ovs.find(o=>o.month===month&&o.item===item&&o.field==="actual");
+    const ovP=ovs.find(o=>o.month===month&&o.item===item&&o.field==="plan");
+    if(mActual==null) missing=true;
+    rows.push({item,label,mPlan,mActual,mVar,basis,yPlan,yActual,yVar,
+      ovA:!!ovA, ovP:!!ovP, origA:ovA?ovA.originalValue:null, origP:ovP?ovP.originalValue:null});
+  }
+  let basisNote;
+  if(!bases.size) basisNote="누계 기준 : 실적 입력 없음";
+  else if(bases.size===1) basisNote="누계 기준 : 1~"+[...bases][0]+"월";
+  else basisNote="누계 기준 : "+rows.filter(r=>r.basis>0).map(r=>r.label+" 1~"+r.basis+"월").join(", ");
+  return {rows, missing, basisNote, month};
+}
+function ratio(cost,sga){ if(cost==null||sga==null) return null; const d=cost+sga; return d===0?null:cost/d*100; }
+function ratioSeries(year){
+  const {plan, actual} = getFin(year);
+  const {plan:P, actual:A} = applyOv(plan, actual, activeOv(year));
+  return {
+    plan: Array.from({length:12},(_,i)=>ratio(P.labor_cost[i],P.labor_sga[i])),
+    actual: Array.from({length:12},(_,i)=>ratio(A.labor_cost[i],A.labor_sga[i])),
+  };
+}
+
+/* Rule 기반 Insight — 수치 변화/비중/순위/계획대비/Missing만 생성 */
+function insights(y,m){
+  const out=[];
+  const cur=teamTable(S.months[mkey(y,m)],"전체","기본순서");
+  const pv=prevPeriod(y,m);
+  const prevDoc=S.months[mkey(pv.y,pv.m)];
+  const prev=prevDoc?teamTable(prevDoc,"전체","기본순서"):null;
+  const perf=cur.division["수행"]?cur.division["수행"].pct:null;
+  if(perf!=null){
+    if(prev && prev.division["수행"])
+      out.push(["n","수행 WORKLOAD "+pct1(perf)+", 전월 대비 "+pp1(perf-prev.division["수행"].pct)]);
+    else out.push(["n","수행 WORKLOAD "+pct1(perf)+" (전월 데이터 없음)"]);
+  }
+  const anTeams=cur.teams.filter(t=>!ANALYSIS_EXCLUDE.includes(t.name));
+  if(anTeams.length){
+    const tg=[...anTeams].sort((a,b)=>b.pct["일반"]-a.pct["일반"])[0];
+    if(tg && tg.pct["일반"]>0) out.push(["i",tg.name+" 일반업무 비중 "+pct1(tg.pct["일반"])+"로 본부 내 최고"]);
+    const tq=[...anTeams].sort((a,b)=>b.pct["견적"]-a.pct["견적"])[0];
+    if(tq && tq.pct["견적"]>0) out.push(["i",tq.name+" 견적/영업 비중 "+pct1(tq.pct["견적"])+"로 본부 내 최고"]);
+  }
+  if(cur.total && prev && prev.total){
+    const chg=(cur.total-prev.total)/prev.total*100;
+    out.push(["n","총 MH "+nf0(cur.total)+", 전월 대비 "+Math.abs(chg).toFixed(1)+"% "+(chg>=0?"증가":"감소")]);
+  }
+  const fs=finSummary(y,m);
+  for(const r of fs.rows){
+    if(r.mVar!=null && r.mVar!==0)
+      out.push(["c",r.label+" "+m+"월 실적 계획대비 "+nf1(Math.abs(r.mVar))+"백만원 "+(r.mVar>0?"증가":"감소")]);
+  }
+  const missing=fs.rows.filter(r=>r.mActual==null).map(r=>r.label);
+  if(missing.length) out.push(["c",m+"월 재무 실적 데이터 미입력 ("+missing.join(", ")+")"]);
+  if(cur.division[UNKNOWN] && cur.division[UNKNOWN].mh>0)
+    out.push(["c","미분류 업무구분 "+nf0(cur.division[UNKNOWN].mh)+" MH ("+pct1(cur.division[UNKNOWN].pct)+") - Mapping 확인 필요"]);
+  return out;
+}
+
+/* =====================================================================
+   Excel Parsing (SheetJS) — 위치 Hard Coding 없이 Label 탐색
+===================================================================== */
+const COL_ALIAS = {
+  department:["부서"], employee_id:["사번"], employee_name:["작성자"],
+  work_date:["작업일자"], st:["st","ST","St"], work_type:["업무 구분","업무구분"],
+  activity:["활동 구분","활동구분"], input_hours:["입력시간"],
+};
+function normCat(v){ const s=String(v??"").trim(); return CAT_MAP[s] || UNKNOWN; }
+function parseDateCell(v){
+  if(v instanceof Date && !isNaN(v)) return {y:v.getFullYear(), m:v.getMonth()+1};
+  const s=String(v??"").trim(); if(!s) return null;
+  let m=s.match(MONTH_RE); if(m) return {y:null, m:+m[1]};
+  m=s.match(/^(\d{4})[\/.\-](\d{1,2})[\/.\-](\d{1,2})/); if(m) return {y:+m[1], m:+m[2]};
+  return null;
+}
+async function sha256(buf){
+  const h=await crypto.subtle.digest("SHA-256", buf);
+  return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+function parseRawSheet(ws){
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:null});
+  let headerIdx=-1, colMap={};
+  for(let i=0;i<Math.min(rows.length,30);i++){
+    const cells=(rows[i]||[]).map(v=>String(v??"").trim());
+    if(cells.includes("부서") && cells.some(c=>c.includes("입력시간"))){
+      headerIdx=i;
+      for(const [key,aliases] of Object.entries(COL_ALIAS)){
+        const j=cells.findIndex(c=>aliases.includes(c));
+        if(j>=0) colMap[key]=j;
+      }
+      break;
+    }
+  }
+  if(headerIdx<0) throw new Error("원데이터 Sheet에서 Header 행('부서','입력시간')을 찾을 수 없습니다.");
+  for(const req of ["department","work_date","work_type","input_hours"])
+    if(!(req in colMap)) throw new Error("원데이터 필수 Column을 찾을 수 없습니다: "+COL_ALIAS[req][0]);
+  // 기준월/기준시간: Header 위쪽의 숫자 Cell 탐색 (G1/G2 또는 I2/I3 등 위치 무관)
+  let baseMonth=null, baseHours=null;
+  for(let i=0;i<headerIdx;i++){
+    for(const v of (rows[i]||[])){
+      if(typeof v!=="number") continue;
+      if(baseMonth==null && Number.isInteger(v) && v>=1 && v<=12) baseMonth=v;
+      else if(baseHours==null && v>=100 && v<=400) baseHours=v;
+    }
+  }
+  // 데이터 행
+  const order={}, teamStCat={}, teamCatAct={}, teamCatActFE={},
+    yearsCount={}, monthsCount={}, projAgg={};
+  let recordCount=0, totalMH=0, nullHours=0, neg=0, big=0, nullDept=0, nullWT=0, mismatch=0;
+  const workTypes=new Set(), unknownTypes=new Set();
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const r=rows[i]||[];
+    const dept=r[colMap.department], wt=r[colMap.work_type], hours=r[colMap.input_hours];
+    if(dept==null && hours==null && wt==null) continue;
+    recordCount++;
+    const deptS=String(dept??"").trim();
+    if(!deptS) nullDept++;
+    const wtS=String(wt??"").trim();
+    if(!wtS) nullWT++; else workTypes.add(wtS);
+    const cat=normCat(wt);
+    if(cat===UNKNOWN && wtS) unknownTypes.add(wtS);
+    const h=(typeof hours==="number")?hours:(hours!=null&&hours!==""&&!isNaN(+hours)?+hours:null);
+    if(h==null){ nullHours++; }
+    else{
+      totalMH+=h; if(h<0) neg++; if(h>ABNORMAL_MH) big++;
+      const team=deptS||"(부서없음)";
+      if(!(team in order)) order[team]=Object.keys(order).length;
+      const stS=String(r[colMap.st]??"").trim()||"(없음)";
+      const bucket=(teamStCat[team]??={}); const stB=(bucket[stS]??={});
+      stB[cat]=(stB[cat]||0)+h;
+      const act=colMap.activity!=null
+        ? (String(r[colMap.activity]??"").trim()||"(활동구분 없음)") : null;
+      const isFE = stS==="FE";
+      if(act!=null){
+        // 팀 × Category × 활동구분 내역 (+ FE분)
+        const tb=(teamCatAct[team]??={}); const cb=(tb[cat]??={});
+        cb[act]=(cb[act]||0)+h;
+        if(isFE){
+          const tf=(teamCatActFE[team]??={}); const cf=(tf[cat]??={});
+          cf[act]=(cf[act]||0)+h;
+        }
+        // 수행 프로젝트별 집계 (업무구분 수행/지원 × 활동 구분, 팀별·FE분 포함)
+        if(PROJ_CATS.includes(wtS)){
+          const pb=(projAgg[act]??={mh:{}, fe:{}, teams:{}, teamsFE:{}});
+          pb.mh[wtS]=(pb.mh[wtS]||0)+h;
+          const tm=(pb.teams[team]??={}); tm[wtS]=(tm[wtS]||0)+h;
+          if(isFE){
+            pb.fe[wtS]=(pb.fe[wtS]||0)+h;
+            const tmf=(pb.teamsFE[team]??={}); tmf[wtS]=(tmf[wtS]||0)+h;
+          }
+        }
+      }
+    }
+    const d=parseDateCell(r[colMap.work_date]);
+    if(d){ if(d.y) yearsCount[d.y]=(yearsCount[d.y]||0)+1;
+           if(d.m){ monthsCount[d.m]=(monthsCount[d.m]||0)+1; } }
+  }
+  const modeOf=o=>{ let k=null,c=-1; for(const [key,n] of Object.entries(o)) if(n>c){c=n;k=+key;} return k; };
+  const month = baseMonth ?? modeOf(monthsCount);
+  if(month!=null){
+    // 기준월 확정 후 불일치 건수 재계산
+    for(const [m,c] of Object.entries(monthsCount)) if(+m!==month) mismatch+=c;
+  }
+  let year=null;
+  if(Object.keys(yearsCount).length){
+    year=modeOf(yearsCount);
+  }
+  const teams=Object.entries(order).sort((a,b)=>a[1]-b[1])
+    .map(([name,ord])=>({name, order:ord, st:teamStCat[name]||{},
+      detail:teamCatAct[name]||{}, detailFE:teamCatActFE[name]||{}}));
+  const two=o=>({수행:(o&&o["수행"])||0, 지원:(o&&o["지원"])||0});
+  const projects=Object.entries(projAgg)
+    .map(([name,p])=>({name, mh:two(p.mh), fe:two(p.fe),
+      teams:Object.fromEntries(Object.entries(p.teams).map(([t,v])=>[t,two(v)])),
+      teamsFE:Object.fromEntries(Object.entries(p.teamsFE).map(([t,v])=>[t,two(v)]))}))
+    .sort((a,b)=>(b.mh.수행+b.mh.지원)-(a.mh.수행+a.mh.지원));
+  return {teams, projects, month, year, baseHours, recordCount, totalMH,
+    quality:{nullHours,neg,big,nullDept,nullWT,mismatch,
+      workTypes:[...workTypes].sort(), unknownTypes:[...unknownTypes].sort()}};
+}
+function parseFinSheet(wb, name){
+  const rows=XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, raw:true, defval:null});
+  const findRow=labels=>{
+    for(let i=0;i<Math.min(rows.length,80);i++){
+      const j=(rows[i]||[]).findIndex(v=>labels.includes(String(v??"").trim()));
+      if(j>=0) return {i,j};
+    } return null;
+  };
+  const planH=findRow(["월별 예산","월별 계획"]);
+  const actH=findRow(["월별 실적"]);
+  if(!planH||!actH) throw new Error("'"+name+"' Sheet에서 '월별 예산'/'월별 실적' Label을 찾을 수 없습니다.");
+  const monthCols=hr=>{
+    const map={}; (rows[hr]||[]).forEach((v,j)=>{
+      const m=String(v??"").trim().match(MONTH_RE);
+      if(m && +m[1]>=1 && +m[1]<=12 && !(+m[1] in map)) map[+m[1]]=j; });
+    return map;
+  };
+  const readBlock=(h)=>{
+    const cols=monthCols(h.i);
+    const out=Object.fromEntries(ITEMS.map(([k])=>[k,Array(12).fill(null)]));
+    for(let i=h.i+1;i<=Math.min(h.i+8,rows.length-1);i++){
+      const lab=String((rows[i]||[])[h.j]??"").replace(/\s/g,"");
+      const item=FIN_EXCEL[lab]; if(!item) continue;
+      for(const [m,cj] of Object.entries(cols)){
+        const v=(rows[i]||[])[cj];
+        out[item][m-1]=(typeof v==="number")?v:(v!=null&&v!==""&&!isNaN(+v)?+v:null);
+      }
+    }
+    return out;
+  };
+  let plan=readBlock(planH), actual=readBlock(actH);
+  const all=[...Object.values(plan),...Object.values(actual)].flat().filter(v=>v!=null);
+  if(all.length && Math.max(...all.map(Math.abs))>WON_THRESHOLD){
+    const div=o=>{ for(const k in o) o[k]=o[k].map(v=>v==null?null:v/1e6); };
+    div(plan); div(actual);
+  }
+  // 실적 미입력 정규화: 최신 실적월 이후의 0/Blank → null
+  let latest=0;
+  for(let m=12;m>=1;m--){ if(ITEMS.some(([k])=>actual[k][m-1]!=null && actual[k][m-1]!==0)){ latest=m; break; } }
+  for(const [k] of ITEMS) for(let m=latest+1;m<=12;m++) actual[k][m-1]=null;
+  const ym=name.match(/^(\d{4})년/);
+  return {sheetName:name, sheetYear:ym?+ym[1]:null, plan, actual, latestActual:latest};
+}
+async function parseWorkbook(buffer, filename){
+  const hash=await sha256(buffer.slice(0));
+  const wb=XLSX.read(buffer, {type:"array", cellDates:true});
+  if(!wb.Sheets["원데이터"]) throw new Error("필수 Sheet '원데이터'를 찾을 수 없습니다.");
+  const raw=parseRawSheet(wb.Sheets["원데이터"]);
+  const finSheets=wb.SheetNames.filter(n=>/^\d{4}년.*예산.*판관비/.test(n));
+  let year=raw.year;
+  if(year==null && finSheets.length){
+    const ys=finSheets.map(n=>+n.match(/^(\d{4})년/)[1]).sort();
+    year=ys[ys.length-1]; // 후보 중 최신 연도를 제안 (사용자 확인 필수)
+  }
+  let finChoice=null;
+  if(finSheets.length){
+    finChoice=finSheets.find(n=>n.startsWith(String(year)+"년")) || (finSheets.length===1?finSheets[0]:null);
+  }
+  let fin=null, finError=null;
+  if(finChoice){ try{ fin=parseFinSheet(wb, finChoice); }catch(e){ finError=e.message; } }
+  return {wb, hash, filename, raw, finSheets, finChoice, fin, finError,
+    yearGuess:year, monthGuess:raw.month, yearFromDates:raw.year!=null};
+}
+function buildQuality(p, year, month){
+  const q=[]; const r=p.raw, Q=r.quality;
+  const add=(name,status,detail)=>q.push({name,status,detail});
+  add("원데이터 Sheet","ok", nf0(r.recordCount)+"행 인식");
+  add("팀 인식", r.teams.length?"ok":"err", r.teams.length+"개 팀 확인");
+  add("입력시간", Q.nullHours? "warn":"ok", Q.nullHours? nf0(Q.nullHours)+"건 누락/비숫자":"전체 숫자 확인");
+  add("음수 MH", Q.neg?"warn":"ok", Q.neg? nf0(Q.neg)+"건":"없음");
+  add("비정상 MH", Q.big?"warn":"ok", Q.big? ABNORMAL_MH+" MH 초과 "+nf0(Q.big)+"건":"없음");
+  add("부서 누락", Q.nullDept?"warn":"ok", Q.nullDept? nf0(Q.nullDept)+"건":"없음");
+  add("업무구분", (Q.nullWT||Q.unknownTypes.length)?"warn":"ok",
+    (Q.nullWT||Q.unknownTypes.length)
+      ? [(Q.nullWT? "누락 "+nf0(Q.nullWT)+"건":""), (Q.unknownTypes.length? "미정의: "+Q.unknownTypes.join(", "):"")].filter(Boolean).join(" / ")+" → '미분류' 처리"
+      : Q.workTypes.length+"종 확인");
+  add("작업일자-기준월", Q.mismatch?"warn":"ok", Q.mismatch? "기준월 외 일자 "+nf0(Q.mismatch)+"건":"일치");
+  if(!p.yearFromDates) add("기준 연도","warn","작업일자에 연도 정보가 없어 자동 추정 - 확인 필요");
+  if(!p.fin) add("재무 데이터","warn", p.finError || "예산/실적 Sheet 미인식");
+  else{
+    add("예산 데이터","ok","'"+p.fin.sheetName+"' 인식");
+    const entered=ITEMS.some(([k])=>p.fin.actual[k][month-1]!=null);
+    add("실적 데이터", entered?"ok":"warn", entered? month+"월 실적 확인": month+"월 재무 실적 미입력");
+    if(p.fin.sheetYear && p.fin.sheetYear!==year)
+      add("재무 Sheet 연도","warn","Sheet 연도("+p.fin.sheetYear+")와 대상 연도("+year+") 불일치");
+  }
+  return q;
+}
+
+/* =====================================================================
+   SVG Charts (line / bar) — crosshair + tooltip
+===================================================================== */
+const chartReg = {};
+let chartSeq = 0;
+let wlModalData = null, projModalData = null;   // 팝업(전체 내역) 데이터
+function svgLine(opts){
+  // opts: {series:[{name,color,dash,markers,faint,width,axis:'y2'?,values[]}],
+  //        labels[], ySuffix, h, hl(1-based idx|null)}
+  const id="ch"+(++chartSeq); chartReg[id]=opts;
+  const has2=opts.series.some(s=>s.axis==="y2");
+  const AXF=opts.bigAxis? `font-size="18" font-weight="700" fill="var(--ink2)"`
+                        : `font-size="10" fill="var(--ink3)"`;
+  const LBS=opts.labelSize||11.5;
+  const W=opts.w||720, H=opts.h||240, L=opts.bigAxis?80:46, R=has2?(opts.bigAxis?84:50):14,
+    T=opts.pointLabels?(LBS>=18?40:(LBS>=14?30:26)):12, B=opts.bigAxis?40:26;
+  const iw=W-L-R, ih=H-T-B;
+  const scaleOf=list=>{
+    const vals=list.flatMap(s=>s.values).filter(v=>v!=null);
+    let lo=vals.length?Math.min(...vals):0, hi=vals.length?Math.max(...vals):1;
+    if(lo===hi){ lo-=1; hi+=1; }
+    const pad=(hi-lo)*0.12; lo-=pad; hi+=pad;
+    return {lo, hi};
+  };
+  const s1=opts.series.filter(s=>s.axis!=="y2");
+  const s2=opts.series.filter(s=>s.axis==="y2");
+  let {lo, hi}=scaleOf(s1.length?s1:opts.series);
+  if(opts.yDomain){ lo=opts.yDomain[0]; hi=opts.yDomain[1]; }
+  else if(opts.zeroBase && lo>0) lo=0;
+  let lo2=0, hi2=1;
+  if(has2){
+    if(opts.y2Domain){ lo2=opts.y2Domain[0]; hi2=opts.y2Domain[1]; }
+    else{ const sc2=scaleOf(s2); lo2=Math.min(0,sc2.lo); hi2=sc2.hi; }
+  }
+  const n=opts.labels.length;
+  const X=i=> L + (n===1? iw/2 : i*(iw/(n-1)));
+  const Y=v=> T + ih - (v-lo)/(hi-lo)*ih;
+  const Y2=v=> T + ih - (v-lo2)/(hi2-lo2)*ih;
+  const ticks=[]; const step=opts.yDomain? (hi-lo)/5 : niceStep((hi-lo)/4);
+  for(let t=Math.ceil(lo/step)*step; t<=hi+1e-9; t+=step) ticks.push(t);
+  let g="";
+  ticks.forEach(t=>{ const y=Y(t);
+    g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>`;
+    g+=`<text x="${L-7}" y="${y+4}" text-anchor="end" ${AXF}>${fmtTick(t)}${opts.ySuffix||""}</text>`; });
+  if(has2){
+    const step2=opts.y2Domain? (hi2-lo2)/5 : niceStep((hi2-lo2)/4);
+    for(let t=Math.ceil(lo2/step2)*step2; t<=hi2+1e-9; t+=step2)
+      g+=`<text x="${W-R+7}" y="${Y2(t)+4}" text-anchor="start" ${AXF}>${fmtTick(t)}${opts.ySuffix||""}</text>`;
+  }
+  const lblEvery=Math.ceil(n/12);
+  opts.labels.forEach((lb,i)=>{ if(i%lblEvery) return;
+    g+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" ${AXF}>${esc(lb)}</text>`; });
+  if(opts.hl!=null && opts.hl>=1 && opts.hl<=n)
+    g+=`<line x1="${X(opts.hl-1)}" x2="${X(opts.hl-1)}" y1="${T}" y2="${T+ih}" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 3"/>`;
+  for(const s of opts.series){
+    const YY=s.axis==="y2"?Y2:Y;
+    let path="", run=false;
+    s.values.forEach((v,i)=>{
+      if(v==null){ run=false; return; }
+      path+=(run?"L":"M")+X(i).toFixed(1)+" "+YY(v).toFixed(1)+" "; run=true;
+    });
+    g+=`<path d="${path}" fill="none" stroke="${s.color}" stroke-width="${s.width||2.2}" ${s.dash?`stroke-dasharray="5 4"`:""} ${s.faint?`opacity="0.75"`:""} stroke-linejoin="round" stroke-linecap="round"/>`;
+    if(s.markers!==false)
+      s.values.forEach((v,i)=>{ if(v==null) return;
+        g+=`<circle cx="${X(i).toFixed(1)}" cy="${YY(v).toFixed(1)}" r="3" fill="${s.color}" stroke="var(--panel)" stroke-width="1.5"/>`; });
+  }
+  /* Data Labels (pos: above/below) — 양끝은 축과 겹치지 않게 anchor 보정 */
+  if(opts.pointLabels)
+    for(const pl of opts.pointLabels){
+      const yy=(pl.axis==="y2"?Y2:Y)(pl.v)+(pl.pos==="above"? -(LBS*0.75) : LBS+5);
+      const anc=pl.i===0?"start":(pl.i===n-1?"end":"middle");
+      const dx=pl.i===0?3:(pl.i===n-1?-3:0);
+      g+=`<text x="${(X(pl.i)+dx).toFixed(1)}" y="${yy.toFixed(1)}" text-anchor="${anc}" font-size="${LBS}" font-weight="600" fill="${pl.color}">${esc(pl.text)}</text>`;
+    }
+  g+=`<line id="${id}-cross" x1="0" x2="0" y1="${T}" y2="${T+ih}" stroke="var(--ink3)" stroke-width="1" opacity="0"/>`;
+  chartReg[id]._geo={W,H,L,R,T,B,iw,ih,n};
+  return `<div class="chart" data-chart="${id}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="chart">${g}</svg></div>`;
+}
+function niceStep(raw){
+  const p=Math.pow(10, Math.floor(Math.log10(Math.abs(raw)||1)));
+  const r=raw/p;
+  return (r<=1?1:r<=2?2:r<=5?5:10)*p;
+}
+function fmtTick(t){ return Math.abs(t)>=1000 ? nf0(t) : (Math.round(t*10)/10).toLocaleString("en-US"); }
+function svgBars(opts){
+  // opts: {values[], labels[], color, h, suffix}
+  const id="ch"+(++chartSeq); chartReg[id]={...opts, bar:true};
+  const W=720, H=opts.h||240, L=52, R=14, T=12, B=26;
+  const iw=W-L-R, ih=H-T-B;
+  const vals=opts.values.filter(v=>v!=null);
+  const hi=vals.length?Math.max(...vals)*1.1:1;
+  const n=opts.labels.length, bw=Math.min(46, iw/n*0.55);
+  const X=i=> L + (i+0.5)*(iw/n);
+  const Y=v=> T + ih - v/hi*ih;
+  let g="";
+  const step=niceStep(hi/4);
+  for(let t=0;t<=hi+1e-9;t+=step){ const y=Y(t);
+    g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="var(--grid)"/>`;
+    g+=`<text x="${L-7}" y="${y+3.5}" text-anchor="end" font-size="10" fill="var(--ink3)">${fmtTick(t)}</text>`; }
+  opts.labels.forEach((lb,i)=>{
+    g+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--ink3)">${esc(lb)}</text>`;
+    const v=opts.values[i]; if(v==null) return;
+    g+=`<rect x="${(X(i)-bw/2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${bw}" height="${(T+ih-Y(v)).toFixed(1)}" rx="4" fill="${opts.color||"var(--accent)"}"/>`;
+  });
+  chartReg[id]._geo={W,H,L,R,T,B,iw,ih,n};
+  return `<div class="chart" data-chart="${id}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="bar chart">${g}</svg></div>`;
+}
+function bindCharts(root){
+  root.querySelectorAll("[data-chart]").forEach(el=>{
+    const id=el.dataset.chart, spec=chartReg[id]; if(!spec) return;
+    const svg=el.querySelector("svg"), tip=$("#tip");
+    el.addEventListener("mousemove", ev=>{
+      const r=svg.getBoundingClientRect(), geo=spec._geo;
+      const fx=(ev.clientX-r.left)/r.width*geo.W;
+      const n=geo.n;
+      let i=Math.round((fx-geo.L)/(n===1?1:geo.iw/(n-1)));
+      if(spec.bar) i=Math.floor((fx-geo.L)/(geo.iw/n));
+      if(i<0||i>=n){ tip.style.display="none"; return; }
+      const cross=svg.querySelector(`#${id}-cross`);
+      if(cross){ const X=geo.L+(n===1?geo.iw/2:i*(geo.iw/(n-1)));
+        cross.setAttribute("x1",X); cross.setAttribute("x2",X); cross.setAttribute("opacity",".45"); }
+      let html=`<b>${esc(spec.labels[i])}</b><br>`;
+      if(spec.bar){ html+= esc(spec.name||"")+" "+nf0(spec.values[i])+(spec.suffix||""); }
+      else{
+        for(const s of spec.series){
+          const v=s.values[i];
+          html+=`<span style="color:${s.color}">●</span> ${esc(s.name)} : ${v==null?"미입력":(spec.fmt?spec.fmt(v):v.toFixed(1)+(spec.ySuffix||""))}<br>`;
+        }
+        if(spec.extra) html+=spec.extra(i)||"";
+      }
+      tip.innerHTML=html; tip.style.display="block";
+      tip.style.left=Math.min(ev.clientX+14, innerWidth-tip.offsetWidth-8)+"px";
+      tip.style.top=(ev.clientY+14)+"px";
+    });
+    el.addEventListener("mouseleave", ()=>{ $("#tip").style.display="none";
+      const cross=svg.querySelector(`#${id}-cross`); if(cross) cross.setAttribute("opacity","0"); });
+  });
+}
+
+/* =====================================================================
+   Renderers
+===================================================================== */
+function renderAll(){
+  renderControls(); renderTabs(); renderMeta();
+  document.body.classList.toggle("exec", S.exec);
+  const v=$("#view");
+  if(!S.ready){ v.innerHTML='<div class="empty">데이터 연결 중…</div>'; return; }
+  if(S.tab==="dash") renderDash(v);
+  else if(S.tab==="history") renderHistory(v);
+  else if(S.tab==="data") renderData(v);
+  else renderAdmin(v);
+  bindCharts(v);
+}
+function renderTabs(){
+  const defs=[["dash","Executive Dashboard"],["data","Data Management"],["admin","Admin"]];
+  $("#tabs").innerHTML=defs.map(([k,l])=>
+    `<button class="${S.tab===k?"on":""}" onclick="App.tab('${k}')">${l}</button>`).join("");
+}
+function renderControls(){
+  const ps=periods();
+  const years=[...new Set(ps.map(p=>p.y))];
+  let html="";
+  if(ps.length && S.sel){
+    const months=ps.filter(p=>p.y===S.sel.y).map(p=>p.m);
+    html+=`<select aria-label="연도" onchange="App.selYear(+this.value)">${years.map(y=>
+      `<option ${y===S.sel.y?"selected":""}>${y}</option>`).join("")}</select>`;
+    html+=`<select aria-label="월" onchange="App.selMonth(+this.value)">${months.map(m=>
+      `<option value="${m}" ${m===S.sel.m?"selected":""}>${m}월</option>`).join("")}</select>`;
+  }
+  html+=`<span class="toggle ${S.feInclude?"on":""}" role="switch" aria-checked="${S.feInclude}" tabindex="0"
+    title="FE 인력 MH를 WORKLOAD 집계에 포함/제외합니다 (모든 화면 공통 적용)"
+    onclick="App.feToggle()" onkeydown="if(event.key==='Enter'||event.key===' ')App.feToggle()">
+    <span class="tr"></span>FE 포함</span>`;
+  html+=`<span class="toggle ${S.exec?"on":""}" role="switch" aria-checked="${S.exec}" tabindex="0"
+    onclick="App.execToggle()" onkeydown="if(event.key==='Enter'||event.key===' ')App.execToggle()">
+    <span class="tr"></span>Executive View</span>`;
+  html+=`<span class="store-chip">${S.storeMode==="shared"?"공유 저장소":S.storeMode==="static"?"게시 데이터 · 조회 전용":S.storeMode==="local"?"로컬 저장":"연결 중"}</span>`;
+  $("#controls").innerHTML=html;
+}
+function renderMeta(){
+  if(!S.sel){ $("#meta").innerHTML=""; return; }
+  const doc=S.months[mkey(S.sel.y,S.sel.m)];
+  const parts=[`기준월 : ${S.sel.y}년 ${S.sel.m}월`];
+  if(doc && doc.uploadedAt) parts.push("갱신 : "+doc.uploadedAt);
+  if(doc && doc.sourceFile && !S.exec) parts.push("Source : "+esc(doc.sourceFile));
+  if(doc && doc.quality){
+    const warn=doc.quality.some(q=>q.status!=="ok");
+    parts.push(`Data Quality : ${warn?"확인 필요":"정상"}`);
+  }
+  if(!S.feInclude) parts.push("FE 제외 적용 중");
+  $("#meta").innerHTML=parts.join(" · ");
+}
+
+/* ---------- Executive Dashboard ---------- */
+function renderDash(v){
+  if(!S.sel){
+    v.innerHTML=`<div class="empty"><b>등록된 월간 데이터가 없습니다.</b>
+      Data Management에서 Excel 파일을 추가하십시오.<br><br>
+      <button class="btn pri hide-exec" onclick="App.tab('data')">Excel 데이터 추가</button></div>`;
+    return;
+  }
+  const {y,m}=S.sel;
+  const doc=S.months[mkey(y,m)];
+  const tt=teamTable(doc, "전체", "기본순서");        // KPI/Insight용
+  const ttf=teamTable(doc, "전체", S.sort);            // Chart용 (정렬 적용)
+  const fs=finSummary(y,m);
+  const rs=ratioSeries(y);
+  const pv=prevPeriod(y,m), prevDoc=S.months[mkey(pv.y,pv.m)];
+  const prev=prevDoc?teamTable(prevDoc,"전체","기본순서"):null;
+
+  /* KPI */
+  const kpi=[];
+  {
+    const p=tt.division["수행"]?tt.division["수행"].pct:null;
+    let sub="전월 데이터 없음";
+    if(p!=null && prev && prev.division["수행"]) sub="전월 대비 "+pp1(p-prev.division["수행"].pct);
+    kpi.push({l:"수행 WORKLOAD", v:pct1(p), u:"", s:sub, c:""});
+  }
+  const rCost=fs.rows[0], rSga=fs.rows[1], rAdm=fs.rows[2];
+  /* 증감 색: posGood=true면 +가 긍정(파랑)/-가 부정(빨강), false면 반대 */
+  const signCls=(d,posGood)=> (d==null||d===0)?"" :
+    (d>0 ? (posGood?"blue":"red") : (posGood?"red":"blue"));
+  {
+    /* 공사원가율(인건비) = 원가 / (원가+판관비) — +가 긍정 */
+    const a=rs.actual[m-1], p=rs.plan[m-1];
+    const d=(a!=null&&p!=null)? a-p : null;
+    kpi.push(a==null
+      ? {l:"공사원가율(인건비)", v:"미입력", u:"", s:"실적 미입력", c:""}
+      : {l:"공사원가율(인건비)", v:pct1(a), u:"",
+         s:p!=null?"계획 대비 "+pp1(d):"계획 없음", c:signCls(d,true)});
+  }
+  {
+    /* 판관비율(인건비) = 월별 실적 판관비 / 월별 실적 인건비 — +가 부정 */
+    const a=ratio(rSga.mActual, rCost.mActual);          // sga/(sga+cost)
+    const p=ratio(rSga.mPlan, rCost.mPlan);
+    const d=(a!=null&&p!=null)? a-p : null;
+    kpi.push(a==null
+      ? {l:"판관비율(인건비)", v:"미입력", u:"", s:"실적 미입력", c:""}
+      : {l:"판관비율(인건비)", v:pct1(a), u:"",
+         s:p!=null?"계획 대비 "+pp1(d):"계획 없음", c:signCls(d,false)});
+  }
+  {
+    /* 관리비율 = 누계실적 경비 / 누계예산 경비 */
+    const v=(rAdm.yActual!=null && rAdm.yPlan)? rAdm.yActual/rAdm.yPlan*100 : null;
+    kpi.push(v==null
+      ? {l:"관리비율", v:"미입력", u:"", s:"누계 실적 없음", c:""}
+      : {l:"관리비율", v:pct1(v), u:"",
+         s:"누계 기준 1~"+rAdm.basis+"월 · 경비 실적/예산", c:""});
+  }
+  for(const r of fs.rows){
+    kpi.push(r.mActual==null
+      ? {l:r.label, v:"미입력", u:"", s:"-", c:""}
+      : {l:r.label, v:nf1(r.mActual), u:"백만원",
+         s:r.mVar==null?"-":"계획대비 "+sgn1(r.mVar)+"백만원",
+         c:varColorClass(r.item,r.mVar)});
+  }
+  const kpiCard=(k,extra="")=>`<div class="kpi ${extra}"><div class="l">${esc(k.l)}</div>
+     <div class="v num">${esc(k.v)}${k.u?`<span class="u">${k.u}</span>`:""}</div>
+     <div class="s ${k.c}">${esc(k.s)}</div></div>`;
+  /* 비율 KPI와 해당 금액 KPI를 같은 열에 배치 */
+  let html=`<div class="kpis kpis4">
+    ${kpiCard(kpi[0],"kpi-span")}
+    ${[[1,4],[2,5],[3,6]].map(([a,b])=>
+      `<div class="kpi-col">${kpiCard(kpi[a])}${kpiCard(kpi[b])}</div>`).join("")}
+  </div>`;
+
+  if(fs.missing) html+=`<div class="banner">⚠ ${m}월 재무 실적 데이터가 아직 입력되지 않았습니다.</div>`;
+
+  /* 팀별 WORKLOAD Section을 생성한 뒤 잘라내어 공사원가율 아래에 배치한다 */
+  const _wlStart=html.length;
+  html+=`<section class="panel"><div class="sec-h">
+    <h2>팀별 WORKLOAD 구성 <span class="sub">${y}년 ${m}월 · 팀별 전체 MH 중 업무 유형별 투입 비율(%) · 막대 클릭 시 내역 표시</span></h2>
+    <select class="hide-print" aria-label="정렬" onchange="App.setSort(this.value)">
+      ${["기본순서","수행율 높은순","일반율 높은순","총 MH 높은순"].map(o=>`<option ${o===S.sort?"selected":""}>${o}</option>`).join("")}
+    </select></div>`;
+  /* 세로바에 표시할 Category: 일반 제외 */
+  const chartCats=ttf.cats.filter(c=>c!=="일반");
+  html+=`<div class="legend center big sp">`+chartCats.map(c=>
+    `<span class="it"><span class="sw" style="background:${CAT_COLORS[c]}"></span>${c}</span>`).join("")+`</div>`;
+  /* 막대 클릭 내역: 팀×Category → 활동구분별 % (FE Toggle 반영) */
+  const detailFor=(name,cat)=>{
+    if(!doc||!doc.teams) return null;
+    const acts={}; let has=false, denom=0;
+    const collect=t=>{ const d=(t.detail||{})[cat];
+      const f=((t.detailFE||{})[cat])||{};
+      if(d){ has=true;
+        for(const [a,v] of Object.entries(d)){
+          const adj=v-(!S.feInclude?(f[a]||0):0);
+          if(adj>0.001) acts[a]=(acts[a]||0)+adj;
+        } } };
+    if(name===TOTAL_LABEL){ doc.teams.forEach(collect); denom=ttf.total; }
+    else{ const t0=doc.teams.find(t=>t.name===name); if(t0) collect(t0);
+      const tr=ttf.teams.find(t=>t.name===name); denom=tr?tr.total:0; }
+    if(!has||!denom) return null;
+    return Object.entries(acts).map(([a,v])=>({a, pct:v/denom*100}))
+      .sort((x,y)=>y.pct-x.pct);
+  };
+  const detailBox=(name,cat)=>{
+    const items=detailFor(name,cat);
+    let body;
+    if(!items) body=`<div class="muted small">내역 데이터가 없습니다. 해당 월 Excel을 다시 Upload하면 표시됩니다.</div>`;
+    else{
+      const top=items.slice(0,5);
+      const rest=items.slice(5);
+      wlModalData={title:`${name} · ${cat} 전체 내역`, items,
+        note:`${name===TOTAL_LABEL?"본부":"팀"} 전체 MH 대비 %`};
+      body=`<div class="wl-detail-items num" style="grid-template-columns:1fr">`
+        + top.map(x=>`<span class="wl-detail-it"><span title="${esc(x.a)}">${esc(x.a)}</span><b>${x.pct.toFixed(1)}%</b></span>`).join("")
+        + (rest.length? `<span class="wl-detail-it etc" style="cursor:pointer" onclick="App.openDetailModal()"><span>그 외 ${rest.length}건 — 클릭하면 전체 내역</span><b>${rest.reduce((s,x)=>s+x.pct,0).toFixed(1)}%</b></span>`:"")
+        + `</div>`;
+    }
+    return `<div class="wl-detail" style="margin-left:0">
+      <div class="wl-detail-h"><span><b>${esc(name)}</b> · <span style="color:${CAT_COLORS[cat]}">■</span> ${esc(cat)} 내역 Top 5
+      <span class="muted small">(${name===TOTAL_LABEL?"본부":"팀"} 전체 MH 대비 %)</span></span>
+      <button class="btn sm" onclick="App.wlDetail(null,null)">닫기 ✕</button></div>${body}</div>`;
+  };
+  /* 가로 Stacked Bar: '전체'(모든 팀) + 분석 팀 (일반 제외, 합계 % 우측 표기) */
+  const analysisTeams=ttf.teams.filter(t=>!ANALYSIS_EXCLUDE.includes(t.name));
+  const cols=[];
+  if(ttf.total>0)
+    cols.push({name:TOTAL_LABEL, total:ttf.total, isTotal:true,
+      pctOf:c=>ttf.division[c]?ttf.division[c].pct:0,
+      mhOf:c=>ttf.division[c]?ttf.division[c].mh:0});
+  for(const t of analysisTeams)
+    cols.push({name:t.name, total:t.total, isTotal:false,
+      pctOf:c=>t.pct[c]||0, mhOf:c=>t.catMH[c]||0});
+  for(const col of cols){
+    const shown=chartCats.filter(c=>col.pctOf(c)>0);
+    const sum=shown.reduce((s,c)=>s+col.pctOf(c),0);
+    let segs="";
+    for(const c of shown){
+      const p=col.pctOf(c);
+      const sel=S.wlDetail && S.wlDetail.team===col.name && S.wlDetail.cat===c;
+      const lbl=p>=LABEL_MIN? p.toFixed(1)+"%":"";
+      segs+=`<div class="wl-seg${sel?" sel":""}" data-team="${esc(col.name)}" data-cat="${c}"
+        style="flex:0 0 ${p}%;background:${CAT_COLORS[c]}"
+        data-tip="<b>${esc(col.name)}</b><br><br>${c}<br>${p.toFixed(1)}%<br>${nf0(col.mhOf(c))} MH<br><br>클릭하면 내역이 표시됩니다"><span>${lbl}</span></div>`;
+    }
+    html+=`<div class="wl-row${col.isTotal?" total":""}">
+      <div class="wl-team" title="${esc(col.name)}">${esc(col.name)}</div>
+      <div class="wl-bar">${segs}</div>
+      <div class="wl-sum num">${sum.toFixed(1)}%</div></div>`;
+  }
+  html+=`<div class="axis-x"><span></span><div class="ticks"><span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100%</span></div><span></span></div>`;
+  if(S.wlDetail) html+=detailBox(S.wlDetail.team, S.wlDetail.cat);
+  html+=`<div class="fin-note">${TOTAL_LABEL} = 모든 팀 합계 · ${ANALYSIS_EXCLUDE.join(", ")}은 팀별 분석에서 제외(${TOTAL_LABEL}에는 포함) · 일반 업무는 그래프에서 제외 (상세 데이터에는 포함)</div>`;
+  if(ttf.cats.includes(UNKNOWN))
+    html+=`<div class="fin-note">⚠ 정의되지 않은 업무구분이 '미분류'로 표시되어 있습니다. 관리자 확인이 필요합니다.</div>`;
+  html+=`</section>`;
+
+  /* 팀별 WORKLOAD Section 잘라내기 */
+  const wlSection=html.slice(_wlStart);
+  html=html.slice(0,_wlStart);
+
+  /* Row 1: 인건비/관리비 — Full Width */
+  html+=`<section class="panel"><div class="sec-h"><h2>인건비 / 관리비 <span class="sub">${y}년 ${m}월</span></h2>
+    <button class="btn sm hide-print" onclick="App.openFinModal()">월별 확인</button></div>`;
+  html+=finTableHTML(fs)+`</section>`;
+
+  /* Row 2: 공사원가율(인건비) — Full Width, 1~12월 */
+  html+=`<div class="section-gap"></div>`;
+  html+=`<section class="panel"><div class="sec-h"><h2>공사원가율(인건비) <span class="sub"><b style="color:var(--ink)">${y}년</b> 1~12월 · 계획 vs 실적</span></h2></div>`;
+  html+=`<div class="legend center sp lg2"><span class="it"><span class="sw" style="background:var(--v-red)"></span>계획</span>
+    <span class="it"><span class="sw" style="background:${CAT_COLORS["수행"]}"></span>실적</span></div>`;
+  /* Data Label: 계획 위 / 실적 아래, 실적>계획이면 반대 */
+  const ptLabels=[];
+  for(let i=0;i<12;i++){
+    const p=rs.plan[i], a=rs.actual[i];
+    const actualHigher=(p!=null && a!=null && a>p);
+    if(p!=null) ptLabels.push({i, v:p, pos:actualHigher?"below":"above",
+      color:"var(--v-red)", text:p.toFixed(1)+"%"});
+    if(a!=null) ptLabels.push({i, v:a, pos:actualHigher?"above":"below",
+      color:CAT_COLORS["수행"], text:a.toFixed(1)+"%"});
+  }
+  html+=svgLine({series:[
+      {name:"계획", color:"var(--v-red)", dash:true, markers:false, faint:true,
+       width:3.3, values:rs.plan},
+      {name:"실적", color:CAT_COLORS["수행"], width:3.7, values:rs.actual}],
+    labels:Array.from({length:12},(_,i)=>(i+1)+"월"), ySuffix:"%", w:1360, h:370,
+    hl:m, pointLabels:ptLabels, labelSize:18, bigAxis:true, yDomain:[40,80],
+    extra:i=>{ const p=rs.plan[i],a=rs.actual[i];
+      return (p!=null&&a!=null)?`계획대비 ${pp1(a-p)}`:""; }});
+  html+=`</section>`;
+
+  /* Row 3: 팀별 WORKLOAD 구성 (공사원가율 아래, Full Width) */
+  html+=`<div class="section-gap"></div>`+wlSection;
+
+  /* 수행 프로젝트별 LOAD율 (생성 후 Trend 아래로 이동) */
+  const _pjStart=html.length;
+  html+=`<div class="section-gap"></div><section class="panel"><div class="sec-h">
+    <h2>${y}년 ${m}월 수행 Project Workload율 <span class="sub">활동 구분별 MH ÷ 전체 입력 MH</span></h2>
+    <div class="chips hide-print">${["수행+지원","수행","지원"].map(o=>
+      `<button class="chip ${S.projMode===o?"on":""}" onclick="App.projMode('${o}')">${o}</button>`).join("")}</div></div>`;
+  const projs=(doc&&doc.projects)||null;
+  if(!projs || !projs.length){
+    html+=`<div class="muted small">프로젝트 데이터가 없습니다. 해당 월 Excel을 다시 Upload하면 표시됩니다.</div>`;
+  }else{
+    const totalAll=tt.total || doc.totalMH || 0;
+    /* FE Toggle 반영한 프로젝트 MH */
+    const pmh=(p,c)=> Math.max(0,(p.mh[c]||0) - (!S.feInclude?((p.fe&&p.fe[c])||0):0));
+    const valOf=p=> S.projMode==="수행+지원" ? pmh(p,"수행")+pmh(p,"지원") : pmh(p,S.projMode);
+    let rows=projs.map(p=>({...p, v:valOf(p)})).filter(p=>p.v>0)
+      .sort((a,b)=>b.v-a.v);
+    let restRows=[];
+    if(rows.length>PROJ_MAX_ROWS+1){
+      restRows=rows.slice(PROJ_MAX_ROWS);
+      rows=rows.slice(0,PROJ_MAX_ROWS);
+      rows.push({name:`그 외 ${restRows.length}건`, etc:true,
+        v:restRows.reduce((s,p)=>s+p.v,0)});
+      projModalData={title:`수행 프로젝트 그 외 ${restRows.length}건`,
+        items:restRows.map(p=>({a:p.name, pct:p.v/totalAll*100})),
+        note:"LOAD율 = 프로젝트 MH ÷ 전체 입력 MH"};
+    }else projModalData=null;
+    const maxPct=Math.max(...rows.map(p=>p.v/totalAll*100), 0.001);
+    if(S.projMode==="수행+지원")
+      html+=`<div class="legend center sp lg2"><span class="it"><span class="sw" style="background:${CAT_COLORS["수행"]}"></span>수행</span>
+        <span class="it"><span class="sw" style="background:${CAT_COLORS["지원"]}"></span>지원</span></div>`;
+    for(const p of rows){
+      const pctT=p.v/totalAll*100;
+      const sel=S.projSel===p.name;
+      const tip=p.etc
+        ? `<b>${esc(p.name)}</b><br><br>클릭하면 전체 목록이 표시됩니다`
+        : `<b>${esc(p.name)}</b><br><br>수행 ${(pmh(p,"수행")/totalAll*100).toFixed(1)}% · ${nf0(pmh(p,"수행"))} MH<br>지원 ${(pmh(p,"지원")/totalAll*100).toFixed(1)}% · ${nf0(pmh(p,"지원"))} MH<br><br>클릭하면 팀별 투입률이 표시됩니다`;
+      let segs="";
+      if(p.etc){
+        segs=`<div class="pj-seg" style="width:${pctT/maxPct*100}%;background:var(--line)"></div>`;
+      }else if(S.projMode==="수행+지원"){
+        for(const c of PROJ_CATS){
+          const w=pmh(p,c)/totalAll*100/maxPct*100;
+          if(w>0) segs+=`<div class="pj-seg" style="width:${w}%;background:${CAT_COLORS[c]}"></div>`;
+        }
+      }else{
+        segs=`<div class="pj-seg" style="width:${pctT/maxPct*100}%;background:${CAT_COLORS[S.projMode]}"></div>`;
+      }
+      html+=`<div class="pj-row${sel?" sel":""}" data-tip="${tip}" ${p.etc
+          ? `onclick="App.openProjModal()"` : `data-proj="${esc(p.name)}"`}>
+        <div class="pj-name" title="${esc(p.name)}" ${p.etc?'style="font-style:italic"':""}>${esc(p.name)}</div>
+        <div class="pj-track">${segs}</div>
+        <div class="pj-pct num">${pctT.toFixed(1)}%</div></div>`;
+    }
+    /* 프로젝트 클릭 → 팀별 투입률 세로바 (각 팀 전체 MH 100% 기준) */
+    if(S.projSel){
+      const p=projs.find(x=>x.name===S.projSel);
+      if(p && p.teams && Object.keys(p.teams).length){
+        const tmh=(t,c)=> Math.max(0,((p.teams[t]&&p.teams[t][c])||0)
+          - (!S.feInclude?((p.teamsFE&&p.teamsFE[t]&&p.teamsFE[t][c])||0):0));
+        const modeCats=S.projMode==="수행+지원"?PROJ_CATS:[S.projMode];
+        /* 고정 정렬 순서 · 투입 0%도 표기 · 기술기획팀 제외 · 팀별 고유 색 */
+        const bars=ttf.teams
+          .filter(t=>!ANALYSIS_EXCLUDE.includes(t.name) && t.total>0)
+          .map((t,i)=>{
+            const mh=modeCats.reduce((s,c)=>s+tmh(t.name,c),0);
+            return {name:t.name, mh, pct:mh/t.total*100, total:t.total,
+              color:teamColor(t.name,i)};
+          });
+        const maxB=Math.max(...bars.map(b=>b.pct), 1);
+        let bplot="", bnames="";
+        for(const b of bars){
+          const hp=b.pct/maxB*82;
+          bplot+=`<div class="wlv-stack" data-tip="<b>${esc(b.name)}</b><br><br>${esc(p.name)}<br>${b.pct.toFixed(1)}% · ${nf0(b.mh)} MH<br>(팀 전체 ${nf0(b.total)} MH 대비)">
+            <div class="wlv-sum num">${b.pct.toFixed(1)}%</div>
+            <div class="wlv-seg" style="height:${hp}%;width:50%;margin:0 auto;background:${b.color}"></div></div>`;
+          bnames+=`<div class="wlv-name" title="${esc(b.name)}">${esc(b.name)}</div>`;
+        }
+        const bg=`grid-template-columns:repeat(${bars.length},1fr)`;
+        html+=`<div class="wl-detail" style="margin-left:0;margin-top:12px">
+          <div class="wl-detail-h"><span><b>${esc(p.name)}</b> · 팀별 투입률
+          <span class="muted small">(각 팀 전체 MH 100% 기준 · ${ANALYSIS_EXCLUDE.join(", ")} 제외)</span></span>
+          <button class="btn sm" onclick="App.projSelect(null)">닫기 ✕</button></div>
+          <div class="wlv-main">
+            <div class="wlv-plot" style="${bg};gap:0;height:170px;background:none;border-bottom:1px solid var(--line)">${bplot}</div>
+            <div class="wlv-names" style="${bg};gap:0">${bnames}</div>
+          </div></div>`;
+      }else{
+        html+=`<div class="wl-detail" style="margin-left:0;margin-top:12px">
+          <div class="wl-detail-h"><span><b>${esc(S.projSel)}</b> · 팀별 투입률</span>
+          <button class="btn sm" onclick="App.projSelect(null)">닫기 ✕</button></div>
+          <div class="muted small">팀별 데이터가 없습니다. 해당 월 Excel을 다시 Upload하면 표시됩니다.</div></div>`;
+      }
+    }
+    html+=`<div class="fin-note">수행 프로젝트 = 업무구분 '수행'+'지원' · 분모 = 전체 입력 MH ${nf0(totalAll)} · Top ${PROJ_MAX_ROWS} 표시, 막대 클릭 시 팀별 투입률</div>`;
+  }
+  html+=`</section>`;
+  const pjSection=html.slice(_pjStart);
+  html=html.slice(0,_pjStart);
+
+  /* trend */
+  const yearMonths=periods().filter(p=>p.y===y);
+  html+=`<div class="section-gap"></div><section class="panel"><div class="sec-h">
+    <h2>월별 Workload 트렌드 <span class="sub">${y}년</span></h2></div>`;
+  if(yearMonths.length>=2){
+    /* 수행율(좌축) / 지원율·견적율(우축)을 하나의 그래프에.
+       기본은 '전체', 팀 선택 시 해당 팀의 Trend (일반율 제외) */
+    const allTeams=[...new Set(yearMonths.flatMap(p=>(S.months[p.key].teams||[]).map(t=>t.name)))]
+      .filter(t=>!ANALYSIS_EXCLUDE.includes(t))
+      .sort((a,b)=>teamRank(a)-teamRank(b));
+    const options=[TOTAL_LABEL, ...allTeams];
+    if(!options.includes(S.trendSel)) S.trendSel=TOTAL_LABEL;
+    html+=`<div class="chips hide-print" style="margin-bottom:8px">${options.map(t=>
+      `<button class="chip ${S.trendSel===t?"on":""}" onclick="App.trendSel('${esc(t)}')">${esc(t)}</button>`).join("")}</div>`;
+    const labels=Array.from({length:12},(_,i)=>(i+1)+"월");
+    const catVals=cat=>{
+      const vals=Array(12).fill(null);
+      yearMonths.forEach(p=>{ const tb=teamTable(S.months[p.key],"전체","기본순서");
+        if(S.trendSel===TOTAL_LABEL)
+          vals[p.m-1]=tb.division[cat]?tb.division[cat].pct:null;
+        else{ const row=tb.teams.find(x=>x.name===S.trendSel);
+          vals[p.m-1]=row? (row.pct[cat]||0) : null; } });
+      return vals;
+    };
+    const series=[
+      {name:"수행율", color:CAT_COLORS["수행"], width:3.7, values:catVals("수행")},
+      {name:"지원율", color:CAT_COLORS["지원"], width:3.7, axis:"y2", values:catVals("지원")},
+      {name:"견적율", color:CAT_COLORS["견적"], width:3.7, axis:"y2", values:catVals("견적")},
+    ];
+    /* Data Label (%· 소수점 1자리, 1% 미만 미표기) — 견적율은 아래쪽 배치 */
+    const trL=[];
+    series.forEach(s=>{
+      s.values.forEach((v,i)=>{ if(v==null || v<1) return;
+        trL.push({i, v, axis:s.axis, pos:s.name==="견적율"?"below":"above",
+          color:s.color, text:v.toFixed(1)+"%"});
+      });
+    });
+    html+=`<div class="legend center sp lg2">${series.map(s=>
+      `<span class="it"><span class="sw" style="background:${s.color}"></span>${esc(s.name)}</span>`).join("")}</div>`;
+    html+=svgLine({series, labels, ySuffix:"%", w:1360, h:380, hl:m,
+      pointLabels:trL, labelSize:18, bigAxis:true, yDomain:[0,100], y2Domain:[0,30]});
+  }else{
+    html+=`<div class="muted small">월별 Trend는 2개월 이상 데이터가 축적되면 표시됩니다.</div>`;
+  }
+  html+=`</section>`;
+
+  /* Trend 아래: 수행 프로젝트별 LOAD율 */
+  html+=pjSection;
+
+  /* 수행 프로젝트별 누적 집계 (업무구분 '수행' · 조회월까지 등록된 월 합산) */
+  {
+    const cumMonths=periods().filter(p=>p.y===y && p.m<=m);
+    const agg={};
+    for(const p0 of cumMonths){
+      const md=S.months[p0.key];
+      for(const pr of (md.projects||[])){
+        const v=Math.max(0,((pr.mh&&pr.mh.수행)||0)
+          - (!S.feInclude?((pr.fe&&pr.fe.수행)||0):0));
+        if(v>0) agg[pr.name]=(agg[pr.name]||0)+v;
+      }
+    }
+    const list=Object.entries(agg).map(([n,v])=>({n,v})).sort((a,b)=>b.v-a.v);
+    const totalCum=list.reduce((s,x)=>s+x.v,0);
+    const mFirst=cumMonths.length?cumMonths[0].m:m;
+    const gapNote=cumMonths.length<(m-mFirst+1)
+      ? ` · 미등록 월 제외, 등록된 ${cumMonths.length}개월 합산` : "";
+    html+=`<div class="section-gap"></div><div class="grid" style="grid-template-columns:1fr 1fr">
+      <section class="panel"><div class="sec-h">
+      <h2>수행 프로젝트별 누적 집계</h2>
+      <span class="sub"><b>누적 기간 : ${y}년 ${mFirst}월 ~ ${m}월</b>${gapNote} · 업무구분 '수행' MH${S.feInclude?"":" · FE 제외"}</span></div>`;
+    if(!list.length){
+      html+=`<div class="muted small">누적할 수행 데이터가 없습니다.</div>`;
+    }else{
+      const cumRow=x=>`<tr data-cumproj="${esc(x.n)}" style="cursor:pointer" title="클릭하면 월별 투입 내역이 표시됩니다"><td>${esc(x.n)}</td><td>${nf0(x.v)}</td><td>${(x.v/totalCum*100).toFixed(1)}%</td></tr>`;
+      const TOPN=10;
+      let shown=list, rest=[];
+      if(list.length>TOPN+1){ rest=list.slice(TOPN); shown=list.slice(0,TOPN); }
+      html+=`<div class="tbl-scroll"><table class="data num">
+        <thead><tr><th>프로젝트(활동 구분)</th><th>누적 수행 MH (${mFirst}~${m}월)</th><th>구성비</th></tr></thead><tbody>`;
+      for(const x of shown) html+=cumRow(x);
+      if(rest.length){
+        if(!S.cumExpand){
+          const restSum=rest.reduce((s,x)=>s+x.v,0);
+          html+=`<tr style="cursor:pointer" onclick="App.cumToggle()" title="클릭하면 나머지 프로젝트가 펼쳐집니다">
+            <td style="font-style:italic;color:var(--ink3)">그 외 ${rest.length}건 — 클릭하여 펼치기 ▾</td>
+            <td>${nf0(restSum)}</td><td>${(restSum/totalCum*100).toFixed(1)}%</td></tr>`;
+        }else{
+          for(const x of rest) html+=cumRow(x);
+          html+=`<tr style="cursor:pointer" onclick="App.cumToggle()">
+            <td colspan="3" style="text-align:center;font-style:italic;color:var(--ink3)">▴ 접기</td></tr>`;
+        }
+      }
+      html+=`<tr style="font-weight:700"><td>합계</td><td>${nf0(totalCum)}</td><td>100.0%</td></tr>`;
+      html+=`</tbody></table></div>
+        <div class="fin-note">Top ${TOPN} 표시 · 행 클릭 시 월별 투입 MH·LOAD율 팝업이 표시됩니다.</div>`;
+    }
+    html+=`</section>`;
+    /* 우측: Management Insight */
+    html+=`<section class="panel"><div class="sec-h"><h2>Management Insight</h2></div><div class="insights">`;
+    for(const [sev,text] of insights(y,m)){
+      const ic=sev==="c"?["▲","var(--warn)"]:sev==="i"?["■","var(--ink3)"]:["●","var(--accent)"];
+      html+=`<div class="insight"><span class="ic" style="color:${ic[1]}">${ic[0]}</span><span>${esc(text)}</span></div>`;
+    }
+    html+=`</div></section></div>`;
+  }
+
+  /* drilldown */
+  const dt=teamTable(doc, "전체", S.sort);
+  html+=`<details class="drill hide-exec"><summary>▸ 상세 데이터 보기</summary><div class="panel" style="margin-top:8px">
+    <div class="sec-h"><h2>팀별 상세 WORKLOAD</h2></div>
+    <div class="tbl-scroll"><table class="data num"><thead><tr><th>팀</th><th>총 MH</th>${dt.cats.map(c=>`<th>${c} MH</th><th>${c} %</th>`).join("")}</tr></thead><tbody>`;
+  if(dt.total>0)
+    html+=`<tr style="font-weight:700"><td>${TOTAL_LABEL}</td><td>${nf0(dt.total)}</td>${dt.cats.map(c=>
+      `<td>${nf0(dt.division[c]?dt.division[c].mh:0)}</td><td>${(dt.division[c]?dt.division[c].pct:0).toFixed(1)}%</td>`).join("")}</tr>`;
+  for(const t of dt.teams){
+    const excl=ANALYSIS_EXCLUDE.includes(t.name);
+    html+=`<tr><td>${esc(t.name)}${excl?' <span class="muted">(분석 제외)</span>':""}</td><td>${nf0(t.total)}</td>${dt.cats.map(c=>
+      `<td>${nf0(t.catMH[c]||0)}</td><td>${t.pct[c].toFixed(1)}%</td>`).join("")}</tr>`;
+  }
+  html+=`</tbody></table></div>`;
+  /* 프로젝트 상세 */
+  if(projs && projs.length){
+    const totalAll=tt.total || doc.totalMH || 0;
+    const adj=(p,c)=>Math.max(0,(p.mh[c]||0)-(!S.feInclude?((p.fe&&p.fe[c])||0):0));
+    html+=`<div class="sec-h" style="margin-top:16px"><h2>수행 프로젝트 상세 <span class="sub">분모 = 전체 입력 MH ${nf0(totalAll)}${S.feInclude?"":" · FE 제외"}</span></h2></div>
+      <div class="tbl-scroll"><table class="data num"><thead><tr><th>프로젝트(활동 구분)</th><th>수행 MH</th><th>수행 %</th><th>지원 MH</th><th>지원 %</th><th>합계 MH</th><th>LOAD율</th></tr></thead><tbody>`;
+    for(const p of projs){
+      const su=adj(p,"수행"), ji=adj(p,"지원");
+      const sum=su+ji;
+      if(sum<=0) continue;
+      html+=`<tr><td>${esc(p.name)}</td><td>${nf0(su)}</td><td>${(su/totalAll*100).toFixed(1)}%</td>
+        <td>${nf0(ji)}</td><td>${(ji/totalAll*100).toFixed(1)}%</td>
+        <td>${nf0(sum)}</td><td>${(sum/totalAll*100).toFixed(1)}%</td></tr>`;
+    }
+    html+=`</tbody></table></div>`;
+  }
+  html+=`
+    <div class="sec-h" style="margin-top:16px"><h2>재무 상세 <span class="sub">단위 : 백만원</span></h2></div>
+    <div class="tbl-scroll"><table class="data num"><thead><tr><th>구분</th><th>계획</th><th>실적</th><th>계획대비 증감</th><th>누계계획</th><th>누계실적</th><th>누계 계획대비 증감</th><th>누계기준</th></tr></thead><tbody>`;
+  for(const r of fs.rows){
+    html+=`<tr><td>${esc(r.label)}</td><td>${nf1(r.mPlan)}</td><td>${nf1(r.mActual)}</td><td>${sgn1(r.mVar)}</td>
+      <td>${nf1(r.yPlan)}</td><td>${nf1(r.yActual)}</td><td>${sgn1(r.yVar)}</td><td>${r.basis? "1~"+r.basis+"월":"-"}</td></tr>`;
+  }
+  html+=`</tbody></table></div>
+    <div style="display:flex;gap:10px;margin-top:14px" class="hide-print">
+    ${S.canDownload?`<button class="btn" onclick="App.exportExcel()">📥 Excel Download</button>`:""}
+    <button class="btn" onclick="window.print()">🖨 경영진 보고 출력</button></div>
+  </div></details>`;
+
+  v.innerHTML=html;
+  /* workload segment / project row tooltips + 내역 click */
+  v.querySelectorAll(".wl-seg, .pj-row, .wlv-stack[data-tip]").forEach(seg=>{
+    seg.addEventListener("mousemove", ev=>{
+      const tip=$("#tip"); tip.innerHTML=seg.dataset.tip; tip.style.display="block";
+      tip.style.left=Math.min(ev.clientX+14, innerWidth-tip.offsetWidth-8)+"px";
+      tip.style.top=(ev.clientY+14)+"px";
+    });
+    seg.addEventListener("mouseleave", ()=>$("#tip").style.display="none");
+    if(seg.dataset.team)
+      seg.addEventListener("click", ()=>{ $("#tip").style.display="none";
+        App.wlDetail(seg.dataset.team, seg.dataset.cat); });
+    if(seg.dataset.proj)
+      seg.addEventListener("click", ()=>{ $("#tip").style.display="none";
+        App.projSelect(seg.dataset.proj); });
+  });
+  v.querySelectorAll("[data-cumproj]").forEach(row=>
+    row.addEventListener("click", ()=>App.openCumModal(row.dataset.cumproj)));
+}
+function finTableHTML(fs){
+  const m=fs.month;
+  let h=`<div class="tbl-scroll"><table class="fin num"><thead>
+    <tr><th rowspan="2">구분</th><th colspan="3" class="gl">${m}월</th><th colspan="3" class="gl">누계</th></tr>
+    <tr><th class="gl">계획</th><th>실적</th><th>계획대비 증감</th><th class="gl">계획</th><th>실적</th><th>계획대비 증감</th></tr></thead><tbody>`;
+  const UNIT='<span class="u2">백만원</span>';
+  const cell=(v,ov,orig)=> v==null
+    ? `<td class="miss">미입력</td>`
+    : `<td${ov?` title="관리자 수정값 (원본: ${orig==null?"미입력":nf1(orig)})"`:""}>${nf1(v)}${UNIT}${ov?'<span class="ovmark">*</span>':""}</td>`;
+  const varCell=(item,v)=>`<td class="var" style="color:${varColorVar(item,v)}" title="실적 - 계획 (Actual - Plan)">${sgn1(v)}${v==null?"":UNIT}</td>`;
+  for(const r of fs.rows){
+    h+=`<tr><td class="cat">${esc(r.label)}</td>${cell(r.mPlan,r.ovP,r.origP)}${cell(r.mActual,r.ovA,r.origA)}${varCell(r.item,r.mVar)}
+        ${cell(r.yPlan)}${cell(r.yActual)}${varCell(r.item,r.yVar)}</tr>`;
+  }
+  const anyOv=fs.rows.some(r=>r.ovA||r.ovP);
+  h+=`</tbody></table></div><div class="fin-note">${esc(fs.basisNote)}${anyOv?' · <span class="ovmark">*</span> 관리자 수정값':""}</div>`;
+  return h;
+}
+
+/* ---------- Monthly History ---------- */
+function renderHistory(v){
+  const ps=periods();
+  if(!ps.length){ v.innerHTML=`<div class="empty"><b>등록된 월간 데이터가 없습니다.</b>Data Management에서 Excel 파일을 추가하십시오.</div>`; return; }
+  if(!S.histFrom || !ps.find(p=>p.key===S.histFrom)) S.histFrom=ps[0].key;
+  if(!S.histTo || !ps.find(p=>p.key===S.histTo)) S.histTo=ps[ps.length-1].key;
+  let i0=ps.findIndex(p=>p.key===S.histFrom), i1=ps.findIndex(p=>p.key===S.histTo);
+  if(i0>i1) [i0,i1]=[i1,i0];
+  const sel=ps.slice(i0,i1+1);
+  const labels=sel.map(p=>plabel(p.y,p.m).slice(2));
+  const tables=sel.map(p=>teamTable(S.months[p.key],"전체","기본순서"));
+  const rsCache={}; const finCache={};
+  const rsOf=y=>rsCache[y]??=ratioSeries(y);
+  const finOf=y=>{ if(!finCache[y]){ const f=getFin(y); finCache[y]=applyOv(f.plan,f.actual,activeOv(y)); } return finCache[y]; };
+
+  let html=`<div class="sec-h" style="margin:14px 0 4px"><h2 style="font-size:18px">Monthly History</h2>
+    <div class="chips hide-print"><label class="small muted">조회기간
+      <select onchange="App.histFrom(this.value)">${ps.map(p=>`<option value="${p.key}" ${p.key===S.histFrom?"selected":""}>${plabel(p.y,p.m)}</option>`).join("")}</select> ~
+      <select onchange="App.histTo(this.value)">${ps.map(p=>`<option value="${p.key}" ${p.key===S.histTo?"selected":""}>${plabel(p.y,p.m)}</option>`).join("")}</select></label></div></div>`;
+
+  html+=`<div class="grid" style="grid-template-columns:1fr 1fr">`;
+  html+=`<section class="panel"><div class="sec-h"><h2>총 MH</h2></div>`+
+    svgBars({values:sel.map((p,i)=>tables[i].total||null), labels, name:"총 MH", color:CAT_COLORS["수행"], h:230})+`</section>`;
+  html+=`<section class="panel"><div class="sec-h"><h2>WORKLOAD율 추이</h2></div>
+    <div class="legend">${CATS.map(c=>`<span class="it"><span class="sw" style="background:${CAT_COLORS[c]}"></span>${c}율</span>`).join("")}</div>`+
+    svgLine({series:CATS.map(c=>({name:c+"율", color:CAT_COLORS[c],
+      values:sel.map((p,i)=>tables[i].division[c]?tables[i].division[c].pct:null)})),
+      labels, ySuffix:"%", h:230})+`</section>`;
+  html+=`<section class="panel"><div class="sec-h"><h2>공사원가율(인건비) <span class="sub">계획 vs 실적</span></h2></div>`+
+    svgLine({series:[
+      {name:"계획", color:"var(--v-red)", dash:true, markers:false, faint:true,
+       values:sel.map(p=>rsOf(p.y).plan[p.m-1])},
+      {name:"실적", color:CAT_COLORS["수행"], values:sel.map(p=>rsOf(p.y).actual[p.m-1])}],
+      labels, ySuffix:"%", h:230})+`</section>`;
+  html+=`<section class="panel"><div class="sec-h"><h2>재무 계획대비 증감 <span class="sub">실적 - 계획 · 백만원</span></h2></div>
+    <div class="legend">${ITEMS.map(([k,l],i)=>`<span class="it"><span class="sw" style="background:${TEAM_PALETTE[i]}"></span>${l}</span>`).join("")}</div>`+
+    svgLine({series:ITEMS.map(([k,l],i)=>({name:l, color:TEAM_PALETTE[i],
+      values:sel.map(p=>{ const f=finOf(p.y); const a=f.actual[k][p.m-1], pl=f.plan[k][p.m-1];
+        return (a!=null&&pl!=null)? a-pl : null; })})),
+      labels, ySuffix:"", h:230, fmt:v=>sgn1(v)+"백만원"})+`</section>`;
+  html+=`</div>`;
+
+  /* 항목별 계획 vs 실적 */
+  html+=`<div class="section-gap"></div><div class="grid" style="grid-template-columns:1fr 1fr 1fr">`;
+  for(const [k,l] of ITEMS){
+    html+=`<section class="panel"><div class="sec-h"><h2>${l} <span class="sub">백만원</span></h2></div>`+
+      svgLine({series:[
+        {name:"계획", color:"var(--ink3)", dash:true, values:sel.map(p=>finOf(p.y).plan[k][p.m-1])},
+        {name:"실적", color:CAT_COLORS["수행"], values:sel.map(p=>finOf(p.y).actual[k][p.m-1])}],
+        labels, ySuffix:"", h:200, fmt:v=>nf1(v)+"백만원"})+`</section>`;
+  }
+  html+=`</div>`;
+
+  /* month comparison */
+  if(ps.length>=2){
+    if(!S.histA || !ps.find(p=>p.key===S.histA)) S.histA=ps[ps.length-2].key;
+    if(!S.histB || !ps.find(p=>p.key===S.histB)) S.histB=ps[ps.length-1].key;
+    const A=ps.find(p=>p.key===S.histA), B=ps.find(p=>p.key===S.histB);
+    const ta=teamTable(S.months[A.key],"전체","기본순서"), tb=teamTable(S.months[B.key],"전체","기본순서");
+    const fa=finSummary(A.y,A.m), fb=finSummary(B.y,B.m);
+    const ra=rsOf(A.y).actual[A.m-1], rb=rsOf(B.y).actual[B.m-1];
+    const rows=[];
+    rows.push(["총 MH", nf0(ta.total), nf0(tb.total),
+      (ta.total&&tb.total)?(tb.total-ta.total>=0?"+":"")+nf0(tb.total-ta.total):"-"]);
+    for(const c of CATS){
+      const a=ta.division[c]?ta.division[c].pct:null, b=tb.division[c]?tb.division[c].pct:null;
+      rows.push([c+"율", pct1(a), pct1(b), (a!=null&&b!=null)?pp1(b-a):"-"]);
+    }
+    rows.push(["공사원가율(실적)", pct1(ra), pct1(rb), (ra!=null&&rb!=null)?pp1(rb-ra):"-"]);
+    fa.rows.forEach((r,i)=>{
+      const b=fb.rows[i];
+      rows.push([r.label+" 실적", nf1(r.mActual), nf1(b.mActual),
+        (r.mActual!=null&&b.mActual!=null)? sgn1(b.mActual-r.mActual):"-"]);
+    });
+    html+=`<div class="section-gap"></div><section class="panel">
+      <div class="sec-h"><h2>Month Comparison <span class="sub">두 개월 직접 비교</span></h2>
+      <div class="chips hide-print"><label class="small muted">기준월 A
+        <select onchange="App.histA(this.value)">${ps.map(p=>`<option value="${p.key}" ${p.key===S.histA?"selected":""}>${plabel(p.y,p.m)}</option>`).join("")}</select></label>
+      <label class="small muted">기준월 B
+        <select onchange="App.histB(this.value)">${ps.map(p=>`<option value="${p.key}" ${p.key===S.histB?"selected":""}>${plabel(p.y,p.m)}</option>`).join("")}</select></label></div></div>
+      <div class="tbl-scroll"><table class="data num"><thead><tr><th>항목</th><th>${plabel(A.y,A.m)}</th><th>${plabel(B.y,B.m)}</th><th>증감</th></tr></thead>
+      <tbody>${rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join("")}</tbody></table></div></section>`;
+  }
+  v.innerHTML=html;
+}
+
+/* ---------- Data Management ---------- */
+function renderData(v){
+  let html=`<div class="sec-h" style="margin:14px 0 10px"><h2 style="font-size:18px">Data Management</h2>
+    <span class="sub">월간 Excel 데이터 추가 · 원본 파일은 수정되지 않습니다</span></div>`;
+  if(S.storeMode!=="static"){
+    html+=`<div class="banner" style="background:var(--accent-soft); border-color:var(--line); color:var(--ink2)">
+      <b>GitHub 게시 갱신</b> · Excel 반영 후 아래 버튼으로 data.json을 저장하고,
+      GitHub 저장소의 data.json을 교체(Commit)하면 링크를 가진 모든 사람의 화면에 반영됩니다.
+      <div style="margin-top:8px"><button class="btn sm" onclick="App.downloadDataJson()">📄 GitHub 게시용 data.json 저장</button></div></div>`;
+  }
+  if(S.storeMode==="static"){
+    html+=`<div class="banner">이 화면은 게시본(조회 전용)입니다. 데이터 추가/수정은 원본 Dashboard에서 하고, 갱신된 data.json을 GitHub에 다시 업로드하십시오.</div>`;
+    v.innerHTML=html; return;
+  }
+  html+=`<section class="panel">
+    <div class="drop" id="drop" onclick="document.getElementById('fileIn').click()">
+      <b>Excel 파일을 여기에 끌어다 놓거나 클릭하여 선택</b><br>
+      <span class="small">.xlsx / .xlsm · 원데이터 Sheet + 'YYYY년 예산_순수본부 판관비' Sheet</span>
+    </div>
+    <input type="file" id="fileIn" accept=".xlsx,.xlsm" style="display:none" onchange="App.file(this.files[0])">`;
+  const p=S.pending;
+  if(p){
+    if(p.error){
+      html+=`<div class="banner" style="margin-top:14px">Excel 파일 구조를 확인할 수 없습니다.<br>${esc(p.error)}</div>`;
+    }else{
+      const q=buildQuality(p, p.year, p.month);
+      const status=q.some(x=>x.status==="err")?"오류":q.some(x=>x.status==="warn")?"확인 필요":"정상";
+      html+=`<div class="grid" style="margin-top:16px"><div>
+        <h3 style="margin:0 0 8px;font-size:14px">Upload Preview</h3>
+        <dl class="kv">
+          <dt>파일명</dt><dd class="mono">${esc(p.filename)}</dd>
+          <dt>파일크기</dt><dd>${nf0(p.size/1024)} KB</dd>
+          <dt>총 Rows</dt><dd>${nf0(p.raw.recordCount)}</dd>
+          <dt>총 MH</dt><dd>${nf0(p.raw.totalMH)}</dd>
+          <dt>기준시간</dt><dd>${p.raw.baseHours ?? "-"}</dd>
+          <dt>Teams</dt><dd>${p.raw.teams.length}개</dd>
+        </dl>
+        <div style="display:flex;gap:10px;margin-top:12px;align-items:center;flex-wrap:wrap">
+          <label class="small muted">대상 Year
+            <select onchange="App.pendYear(+this.value)">${Array.from({length:21},(_,i)=>2020+i).map(yy=>
+              `<option ${yy===p.year?"selected":""}>${yy}</option>`).join("")}</select></label>
+          <label class="small muted">대상 Month
+            <select onchange="App.pendMonth(+this.value)">${Array.from({length:12},(_,i)=>i+1).map(mm=>
+              `<option value="${mm}" ${mm===p.month?"selected":""}>${mm}월</option>`).join("")}</select></label>
+        </div>
+        ${!p.yearFromDates? `<div class="small" style="color:var(--warn);margin-top:6px">⚠ 작업일자에 연도가 없어 자동 추정한 연도입니다. 반드시 확인하십시오.</div>`:""}
+        ${p.finSheets.length>1? `<div style="margin-top:10px"><label class="small muted">재무 데이터 Sheet (기준 연도 선택)
+          <select onchange="App.pendFin(this.value)">${p.finSheets.map(n=>
+            `<option ${n===p.finChoice?"selected":""}>${esc(n)}</option>`).join("")}</select></label></div>`:""}
+      </div><div>
+        <h3 style="margin:0 0 8px;font-size:14px">Data Quality : ${status}</h3>
+        <div class="qlist">${q.map(x=>`<span class="q-${x.status==="ok"?"ok":x.status==="warn"?"warn":"err"}">${x.status==="ok"?"✓":x.status==="warn"?"⚠":"✕"} <b>${esc(x.name)}</b> — ${esc(x.detail)}</span>`).join("")}</div>
+      </div></div>`;
+      /* duplicates */
+      const dupFile=S.files[p.hash];
+      const dupMonth=!!S.months[mkey(p.year,p.month)];
+      if(dupFile) html+=`<div class="banner" style="margin-top:12px">동일한 파일이 이미 Upload된 이력이 있습니다 (${esc(dupFile.filename)}, ${esc(dupFile.uploadedAt)}).</div>`;
+      if(dupMonth){
+        html+=`<div class="banner" style="margin-top:12px">${p.year}년 ${p.month}월 데이터가 이미 존재합니다.</div>
+        <div class="chips" style="margin-top:8px">${["기존 데이터 유지","신규 데이터로 교체","Upload 취소"].map(o=>
+          `<button class="chip ${p.dupChoice===o?"on":""}" onclick="App.dupChoice('${o}')">${o}</button>`).join("")}</div>`;
+      }
+      const canCommit = status!=="오류" && (!dupMonth || p.dupChoice==="신규 데이터로 교체");
+      if(dupMonth && p.dupChoice==="기존 데이터 유지") html+=`<div class="small muted" style="margin-top:8px">기존 데이터를 유지합니다. 저장소는 변경되지 않았습니다.</div>`;
+      if(dupMonth && p.dupChoice==="Upload 취소") html+=`<div class="small muted" style="margin-top:8px">Upload를 취소했습니다.</div>`;
+      html+=`<div style="margin-top:16px"><button class="btn pri" ${canCommit?"":"disabled"} onclick="App.commit()">💾 저장소에 반영</button></div>`;
+    }
+  }
+  html+=`</section>`;
+
+  /* 현황 */
+  const ps=periods();
+  html+=`<div class="section-gap"></div><div class="grid" style="grid-template-columns:1fr 2fr">
+    <section class="panel"><div class="sec-h"><h2>등록된 월</h2></div>
+    ${ps.length? ps.map(p=>{
+        const confirming=S.delConfirm===p.key;
+        return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line2)">
+          <span>${p.y}년 ${p.m}월 <span class="muted small">(${nf0(S.months[p.key].totalMH)} MH)</span></span>
+          ${confirming
+            ? `<span style="display:flex;gap:6px;align-items:center"><span class="small" style="color:var(--v-red)">삭제하시겠습니까?</span>
+               <button class="btn sm" style="color:var(--v-red);border-color:var(--v-red)" onclick="App.deleteMonth(${p.y},${p.m})">삭제 확정</button>
+               <button class="btn sm" onclick="App.delConfirm(null)">취소</button></span>`
+            : `<button class="btn sm" onclick="App.delConfirm('${p.key}')">삭제</button>`}
+        </div>${confirming?`<div class="small" style="color:var(--warn);padding:4px 0">WORKLOAD·프로젝트 데이터와 Upload 이력이 삭제됩니다. 재무 연간 데이터는 유지됩니다.</div>`:""}`;
+      }).join("")
+      : `<div class="muted small">등록된 데이터가 없습니다.</div>`}</section>
+    <section class="panel"><div class="sec-h"><h2>Upload 이력</h2></div>`;
+  const files=Object.values(S.files).sort((a,b)=>(b.uploadedAt||"").localeCompare(a.uploadedAt||""));
+  if(files.length){
+    html+=`<div class="tbl-scroll"><table class="data num"><thead><tr><th>파일명</th><th>연도</th><th>월</th><th>Upload 일시</th><th>Rows</th><th>총 MH</th><th>기준시간</th><th>상태</th></tr></thead><tbody>`;
+    for(const f of files) html+=`<tr><td>${esc(f.filename)}</td><td>${f.year}</td><td>${f.month}</td><td>${esc(f.uploadedAt)}</td><td>${nf0(f.rowCount)}</td><td>${nf0(f.totalMH)}</td><td>${f.baseHours??"-"}</td><td>${esc(f.status)}</td></tr>`;
+    html+=`</tbody></table></div>`;
+  }else html+=`<div class="muted small">Upload 이력이 없습니다.</div>`;
+  html+=`</section></div>`;
+  v.innerHTML=html;
+  const drop=$("#drop");
+  if(drop){
+    ["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("on");}));
+    ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("on");}));
+    drop.addEventListener("drop", e=>{ const f=e.dataTransfer.files[0]; if(f) App.file(f); });
+  }
+}
+
+/* ---------- Admin ---------- */
+function renderAdmin(v){
+  const ps=periods();
+  let html=`<div class="sec-h" style="margin:14px 0 10px"><h2 style="font-size:18px">Admin
+    <span class="badge-admin">관리자</span></h2>
+    <span class="sub">수정값은 원본과 분리 저장되며 모든 변경은 Audit Log로 보존됩니다</span></div>`;
+  html+=`<div class="banner">데이터 변경은 이 Artifact의 <b>편집 권한</b>이 있는 계정만 저장할 수 있습니다 (조회 전용 계정은 읽기만 가능).</div>`;
+  if(!ps.length){ v.innerHTML=html+`<div class="empty"><b>등록된 데이터가 없습니다.</b>Data Management에서 Excel을 먼저 추가하십시오.</div>`; return; }
+  const years=[...new Set(ps.map(p=>p.y))];
+  if(!S.admSel) S.admSel={y:S.sel?S.sel.y:years[years.length-1], m:S.sel?S.sel.m:1};
+  const {y,m}=S.admSel;
+  const {plan, actual}=getFin(y);
+  const ovs=activeOv(y);
+  html+=`<section class="panel"><div class="sec-h">
+    <h2>관리자 데이터 수정 - 실적 <span class="sub">${y}년 ${m}월 · 단위 : 백만원</span></h2>
+    <div class="chips">
+      <select onchange="App.admYear(+this.value)">${years.map(yy=>`<option ${yy===y?"selected":""}>${yy}</option>`).join("")}</select>
+      <select onchange="App.admMonth(+this.value)">${Array.from({length:12},(_,i)=>i+1).map(mm=>`<option value="${mm}" ${mm===m?"selected":""}>${mm}월</option>`).join("")}</select>
+      <input type="text" style="width:110px" value="${esc(S.adminName)}" aria-label="수정자" onchange="App.admName(this.value)" placeholder="수정자">
+    </div></div>`;
+  const block=(field)=>{
+    let h=`<div class="form-row muted small" style="border-bottom:1px solid var(--line)"><span>구분</span><span>원본</span><span>현재 적용값</span><span>수정값 입력</span></div>`;
+    for(const [item,label] of ITEMS){
+      const series=field==="actual"?actual:plan;
+      const orig=series[item][m-1];
+      const ov=ovs.find(o=>o.month===m&&o.item===item&&o.field===field);
+      const eff=ov?ov.overrideValue:orig;
+      h+=`<div class="form-row">
+        <span class="lab">${label}</span>
+        <span class="num">${orig==null?'<i class="muted">미입력</i>':nf1(orig)}</span>
+        <span class="num">${eff==null?'<i class="muted">미입력</i>':nf1(eff)+(ov?' <span class="ovmark">(수정)</span>':"")}</span>
+        <input type="text" inputmode="decimal" id="ov_${field}_${item}" placeholder="예: 1132.5"></div>`;
+    }
+    h+=`<div style="display:flex;gap:10px;margin-top:12px;align-items:center;flex-wrap:wrap">
+      <input type="text" id="reason_${field}" style="flex:1;min-width:220px" placeholder="수정 사유 (필수) · 예: 월간 마감자료 반영">
+      <button class="btn pri" onclick="App.saveOverrides('${field}')">저장</button></div>`;
+    return h;
+  };
+  html+=block("actual")+`</section>`;
+  html+=`<div class="section-gap"></div><section class="panel"><details><summary class="small muted" style="cursor:pointer">계획값 수정 (관리자 권한 확장 기능)</summary>
+    <div style="margin-top:10px">`+block("plan")+`</div></details></section>`;
+
+  /* active overrides */
+  html+=`<div class="section-gap"></div><section class="panel"><div class="sec-h"><h2>활성 수정 내역 <span class="sub">${y}년</span></h2></div>`;
+  if(ovs.length){
+    for(const o of ovs.sort((a,b)=>a.month-b.month)){
+      html+=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line2)">
+        <span class="small"><b>${o.year}년 ${o.month}월 ${ITEM_LABEL[o.item]||o.item} (${o.field==="actual"?"실적":"계획"})</b>
+        · 원본: ${o.originalValue==null?"미입력":nf1(o.originalValue)} → 수정: ${nf1(o.overrideValue)}
+        · 사유: ${esc(o.reason)} · ${esc(o.modifiedBy)} (${esc(o.modifiedAt)})</span>
+        <button class="btn sm" onclick="App.cancelOv('${esc(o.id)}')">수정 취소</button></div>`;
+    }
+  }else html+=`<div class="muted small">활성 수정 내역이 없습니다.</div>`;
+  html+=`</section>`;
+
+  /* audit log */
+  const log=[...S.overrides].sort((a,b)=>(b.modifiedAt||"").localeCompare(a.modifiedAt||""));
+  html+=`<div class="section-gap"></div><section class="panel"><div class="sec-h"><h2>Audit Log <span class="sub">모든 변경 기록 (삭제되지 않음)</span></h2></div>`;
+  if(log.length){
+    html+=`<div class="tbl-scroll"><table class="data num"><thead><tr><th>연도</th><th>월</th><th>항목</th><th>구분</th><th>원본값</th><th>변경값</th><th>수정사유</th><th>사용자</th><th>수정일시</th><th>상태</th></tr></thead><tbody>`;
+    for(const o of log) html+=`<tr><td>${o.year}</td><td>${o.month}</td><td>${ITEM_LABEL[o.item]||esc(o.item)}</td>
+      <td>${o.field==="actual"?"실적":"계획"}</td><td>${o.originalValue==null?"미입력":nf1(o.originalValue)}</td>
+      <td>${nf1(o.overrideValue)}</td><td>${esc(o.reason)}</td><td>${esc(o.modifiedBy)}</td><td>${esc(o.modifiedAt)}</td>
+      <td>${o.active?"활성":"비활성"}</td></tr>`;
+    html+=`</tbody></table></div>`;
+  }else html+=`<div class="muted small">수정 이력이 없습니다.</div>`;
+  html+=`</section>`;
+  v.innerHTML=html;
+}
+
+/* =====================================================================
+   Actions
+===================================================================== */
+window.App={
+  tab(t){ S.tab=t; renderAll(); },
+  selYear(y){ const ms=periods().filter(p=>p.y===y).map(p=>p.m);
+    S.sel={y, m:ms.includes(S.sel.m)?S.sel.m:ms[ms.length-1]};
+    S.wlDetail=null; S.projSel=null; S.trendSel=TOTAL_LABEL;
+    S.cumExpand=false; renderAll(); },
+  selMonth(m){ S.sel.m=m; S.wlDetail=null; S.projSel=null;
+    S.trendSel=TOTAL_LABEL; S.cumExpand=false; renderAll(); },
+  cumToggle(){ S.cumExpand=!S.cumExpand; renderAll(); },
+  setSort(v){ S.sort=v; renderAll(); },
+  wlDetail(team,cat){
+    S.wlDetail=(team && !(S.wlDetail && S.wlDetail.team===team && S.wlDetail.cat===cat))
+      ? {team, cat} : null;
+    renderAll(); },
+  trendSel(t){ S.trendSel=t; renderAll(); },
+  projMode(m){ S.projMode=m; renderAll(); },
+  projSelect(name){ S.projSel=(name && S.projSel!==name)? name : null; renderAll(); },
+  _modalList(d){
+    if(!d) return;
+    const body=`<div class="wl-detail-items num" style="grid-template-columns:1fr">`
+      + d.items.map(x=>`<span class="wl-detail-it"><span title="${esc(x.a)}">${esc(x.a)}</span><b>${x.pct.toFixed(1)}%</b></span>`).join("")
+      + `</div><div class="fin-note">${esc(d.note)}</div>`;
+    $("#modal-title").textContent=d.title;
+    $("#modal-body").innerHTML=body;
+    $("#modal").hidden=false;
+  },
+  openDetailModal(){ App._modalList(wlModalData); },
+  openProjModal(){ App._modalList(projModalData); },
+  closeModal(){ const md=$("#modal"); md.hidden=true; md.classList.remove("wide");
+    S.cumSel=null; },
+  /* 인건비/관리비 '월별 확인' 팝업: 월별 계획/실적/계획대비 증감 */
+  openFinModal(){
+    if(!S.sel) return;
+    const y=S.sel.y;
+    const fin=getFin(y);
+    const {plan:P, actual:A}=applyOv(fin.plan, fin.actual, activeOv(y));
+    const UNIT='<span class="u2">백만원</span>';
+    let t=`<div class="tbl-scroll"><table class="fin num"><thead>
+      <tr><th rowspan="2">월</th>${ITEMS.map(([k,l])=>`<th colspan="3" class="gl">${l}</th>`).join("")}</tr>
+      <tr>${ITEMS.map(()=>`<th class="gl">계획</th><th>실적</th><th>계획대비 증감</th>`).join("")}</tr></thead><tbody>`;
+    for(let mm=1; mm<=12; mm++){
+      t+=`<tr><td class="cat">${mm}월</td>`;
+      for(const [k] of ITEMS){
+        const p=P[k][mm-1], a=A[k][mm-1];
+        const v=(p!=null&&a!=null)? a-p : null;
+        t+=`<td>${p==null?'<span class="miss" style="color:var(--ink3)">-</span>':nf1(p)+UNIT}</td>`;
+        t+=a==null? `<td class="miss">미입력</td>` : `<td>${nf1(a)}${UNIT}</td>`;
+        t+=`<td class="var" style="color:${varColorVar(k,v)}">${v==null?"-":sgn1(v)+"백만원"}</td>`;
+      }
+      t+=`</tr>`;
+    }
+    /* 누계 행 (항목별 1월부터 연속 입력 구간 동일기간 비교) */
+    t+=`<tr style="font-weight:700; border-top:2px solid var(--line)"><td class="cat">누계</td>`;
+    for(const [k] of ITEMS){
+      const basis=ytdBasis(A[k],12);
+      if(basis>0){
+        const yp=P[k].slice(0,basis).reduce((s,v2)=>s+(v2||0),0);
+        const ya=A[k].slice(0,basis).reduce((s,v2)=>s+(v2||0),0);
+        t+=`<td title="1~${basis}월">${nf1(yp)}${UNIT}</td><td title="1~${basis}월">${nf1(ya)}${UNIT}</td>
+          <td class="var" style="color:${varColorVar(k,ya-yp)}">${sgn1(ya-yp)}백만원</td>`;
+      }else t+=`<td>-</td><td class="miss">미입력</td><td>-</td>`;
+    }
+    t+=`</tr></tbody></table></div>
+      <div class="fin-note">계획대비 증감 = 실적 - 계획 · 누계는 항목별 실적 입력월까지 동일 기간 비교</div>`;
+    const md=$("#modal"); md.classList.add("wide");
+    $("#modal-title").textContent=y+"년 월별 계획 / 실적";
+    $("#modal-body").innerHTML=t;
+    md.hidden=false;
+  },
+  /* 누적 집계 행 클릭 → 월별 투입 내역 팝업 (전체/팀 전환, 팀 색상 적용) */
+  openCumModal(name){ S.cumSel={proj:name, entity:TOTAL_LABEL}; App._renderCumModal(); },
+  cumEntity(e){ if(!S.cumSel) return; S.cumSel.entity=e; App._renderCumModal(); },
+  _renderCumModal(){
+    if(!S.cumSel || !S.sel) return;
+    const {proj, entity}=S.cumSel; const {y,m}=S.sel;
+    const cumMonths=periods().filter(p=>p.y===y && p.m<=m);
+    const teams=[...new Set(cumMonths.flatMap(p=>(S.months[p.key].teams||[]).map(t=>t.name)))]
+      .filter(t=>!ANALYSIS_EXCLUDE.includes(t)).sort((a,b)=>teamRank(a)-teamRank(b));
+    const entColor= entity===TOTAL_LABEL ? "var(--accent)" : (TEAM_COLORS[entity]||"var(--accent)");
+    const rows=[]; let sumMH=0, sumDen=0;
+    for(const p0 of cumMonths){
+      const md=S.months[p0.key];
+      const tt0=teamTable(md,"전체","기본순서");
+      const pr=(md.projects||[]).find(x=>x.name===proj);
+      let v=0, den=0;
+      if(entity===TOTAL_LABEL){
+        v= pr? Math.max(0,((pr.mh&&pr.mh.수행)||0)-(!S.feInclude?((pr.fe&&pr.fe.수행)||0):0)) : 0;
+        den= tt0.total;
+      }else{
+        v= pr? Math.max(0,((pr.teams&&pr.teams[entity]&&pr.teams[entity].수행)||0)
+             -(!S.feInclude?((pr.teamsFE&&pr.teamsFE[entity]&&pr.teamsFE[entity].수행)||0):0)) : 0;
+        const tr=tt0.teams.find(t=>t.name===entity); den= tr? tr.total:0;
+      }
+      rows.push({m:p0.m, v, load: den? v/den*100 : null});
+      sumMH+=v; sumDen+=den;
+    }
+    const cumLoad= sumDen? sumMH/sumDen*100 : null;
+    const maxLoad=Math.max(...rows.map(r=>r.load||0), 0.001);
+    const chips=`<div class="legend center sp lg2" style="margin:2px 0 12px;gap:14px">
+      ${[TOTAL_LABEL,...teams].map(t=>{
+        const c=t===TOTAL_LABEL?"var(--accent)":(TEAM_COLORS[t]||"#888");
+        return `<button class="chip ${entity===t?"on":""}" onclick="App.cumEntity('${esc(t)}')"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${c};margin-right:6px;vertical-align:-1px"></span>${esc(t)}</button>`;
+      }).join("")}</div>`;
+    let table=`<div class="tbl-scroll"><table class="data num"><thead>
+      <tr><th>월</th><th>수행 MH</th><th>LOAD율</th><th style="width:36%"></th></tr></thead><tbody>`;
+    for(const r of rows)
+      table+=`<tr><td>${y}년 ${r.m}월</td><td>${nf0(r.v)}</td><td>${r.load==null?"-":r.load.toFixed(1)+"%"}</td>
+        <td><div style="height:12px;border-radius:3px;background:${entColor};width:${r.load? Math.max(1,r.load/maxLoad*100):0}%"></div></td></tr>`;
+    table+=`<tr style="font-weight:700"><td>누계 (${rows.length?rows[0].m:m}~${m}월)</td><td>${nf0(sumMH)}</td><td>${cumLoad==null?"-":cumLoad.toFixed(1)+"%"}</td><td></td></tr>`;
+    table+=`</tbody></table></div>
+      <div class="fin-note">LOAD율 = ${entity===TOTAL_LABEL?"본부 전체":esc(entity)}의 해당 프로젝트 수행 MH ÷ ${entity===TOTAL_LABEL?"본부":"팀"} 전체 MH${S.feInclude?"":" · FE 제외"}</div>`;
+    $("#modal-title").textContent=proj+" · 월별 투입 내역";
+    $("#modal-body").innerHTML=chips+table;
+    $("#modal").hidden=false;
+  },
+  feToggle(){ S.feInclude=!S.feInclude; lsSet("emd-fe",S.feInclude);
+    S.wlDetail=null; S.projSel=null; renderAll(); },
+  execToggle(){ S.exec=!S.exec; lsSet("emd-exec",S.exec);
+    try{ history.replaceState(null,"",S.exec?"#exec":location.pathname+location.search); }catch(e){}
+    renderAll(); },
+  histFrom(k){ S.histFrom=k; renderAll(); }, histTo(k){ S.histTo=k; renderAll(); },
+  histA(k){ S.histA=k; renderAll(); }, histB(k){ S.histB=k; renderAll(); },
+  admYear(y){ S.admSel={y, m:S.admSel.m}; renderAll(); },
+  admMonth(m){ S.admSel.m=m; renderAll(); },
+  admName(n){ S.adminName=n||"admin"; lsSet("emd-admin-name",S.adminName); },
+  dupChoice(o){ if(S.pending) S.pending.dupChoice=o; renderAll(); },
+  pendYear(y){ if(S.pending){ S.pending.year=y; S.pending.dupChoice=null; renderAll(); } },
+  pendMonth(m){ if(S.pending){ S.pending.month=m; S.pending.dupChoice=null; renderAll(); } },
+  pendFin(name){ const p=S.pending; if(!p) return;
+    try{ p.fin=parseFinSheet(p.wb,name); p.finChoice=name; p.finError=null; }
+    catch(e){ p.fin=null; p.finError=e.message; }
+    renderAll(); },
+  async file(f){
+    if(!f) return;
+    try{
+      const buf=await f.arrayBuffer();
+      const parsed=await parseWorkbook(buf, f.name);
+      S.pending={...parsed, size:f.size, year:parsed.yearGuess ?? new Date().getFullYear(),
+        month:parsed.monthGuess ?? 1, dupChoice:null, error:null};
+    }catch(e){
+      S.pending={filename:f.name, size:f.size, error:e.message||String(e)};
+    }
+    renderAll();
+  },
+  async commit(){
+    const p=S.pending; if(!p||p.error) return;
+    try{
+      const q=buildQuality(p, p.year, p.month);
+      const r2=v=>Math.round((v||0)*100)/100;
+      const rActs=acts=>Object.fromEntries(Object.entries(acts||{}).map(([a,v])=>[a,r2(v)]));
+      const rDet=d=>Object.fromEntries(Object.entries(d||{}).map(([c,acts])=>[c,rActs(acts)]));
+      const rTwo=o=>({수행:r2(o&&o.수행), 지원:r2(o&&o.지원)});
+      const rTeams=tm=>Object.fromEntries(Object.entries(tm||{}).map(([t,v])=>[t,rTwo(v)]));
+      const doc={ year:p.year, month:p.month, baseHours:p.raw.baseHours,
+        recordCount:p.raw.recordCount, totalMH:Math.round(p.raw.totalMH*10)/10,
+        sourceFile:p.filename, uploadedAt:nowStr(),
+        teams:p.raw.teams.map(t=>({name:t.name, order:t.order,
+          st:Object.fromEntries(Object.entries(t.st).map(([s,c])=>[s,rActs(c)])),
+          detail:rDet(t.detail), detailFE:rDet(t.detailFE)})),
+        projects:(p.raw.projects||[]).map(pr=>({name:pr.name,
+          mh:rTwo(pr.mh), fe:rTwo(pr.fe),
+          teams:rTeams(pr.teams), teamsFE:rTeams(pr.teamsFE)})),
+        quality:q, unknownTypes:p.raw.quality.unknownTypes };
+      await Store.saveMonth(doc);
+      if(p.fin) await Store.mergeFinancial(p.year, p.fin.plan, p.fin.actual, p.filename);
+      await Store.saveFile({filename:p.filename, hash:p.hash, year:p.year, month:p.month,
+        uploadedAt:nowStr(), rowCount:p.raw.recordCount,
+        totalMH:Math.round(p.raw.totalMH*10)/10, baseHours:p.raw.baseHours, status:"반영"});
+      S.sel={y:p.year, m:p.month}; S.pending=null; S.tab="dash";
+      toast(p.year+"년 "+p.month+"월 데이터가 반영되었습니다.");
+      renderAll();
+    }catch(e){ /* Store가 이미 toast 처리 */ }
+  },
+  async saveOverrides(field){
+    const {y,m}=S.admSel;
+    const reason=($("#reason_"+field).value||"").trim();
+    const {plan, actual}=getFin(y);
+    const changes=[];
+    for(const [item] of ITEMS){
+      const raw=($("#ov_"+field+"_"+item).value||"").trim();
+      if(!raw) continue;
+      const val=Number(raw.replace(/,/g,""));
+      if(isNaN(val)){ toast(ITEM_LABEL[item]+": '"+raw+"'는 숫자가 아닙니다."); return; }
+      changes.push({item, val});
+    }
+    if(!changes.length){ toast("수정할 값을 입력하십시오."); return; }
+    if(!reason){ toast("수정 사유는 필수 입력입니다."); return; }
+    try{
+      for(const c of changes){
+        const orig=(field==="actual"?actual:plan)[c.item][m-1];
+        await Store.addOverride({year:y, month:m, item:c.item, field,
+          originalValue:orig, overrideValue:c.val, reason,
+          modifiedBy:S.adminName||"admin", modifiedAt:nowStr(), active:true});
+      }
+      toast("수정값이 저장되었습니다. Dashboard에 즉시 반영됩니다.");
+      renderAll();
+    }catch(e){}
+  },
+  async cancelOv(id){ try{ await Store.cancelOverride(id); toast("수정이 취소되었습니다 (이력은 보존됩니다)."); }catch(e){} },
+  delConfirm(key){ S.delConfirm=key; renderAll(); },
+  async deleteMonth(y,m){
+    try{
+      await Store.deleteMonth(y,m);
+      S.delConfirm=null;
+      toast(y+"년 "+m+"월 데이터가 삭제되었습니다.");
+      renderAll();
+    }catch(e){}
+  },
+  /* GitHub 게시용 data.json 저장 (현재 데이터 전체) */
+  async downloadDataJson(){
+    const payload=JSON.stringify({months:S.months, financial:S.financial,
+      overrides:S.overrides, files:S.files});
+    let dl=null;
+    try{ if(window.claude&&window.claude.use) dl=await window.claude.use("downloads"); }catch(e){}
+    if(dl){
+      try{ await dl.save({filename:"data.json", data:payload});
+        toast("data.json 저장 완료. GitHub 저장소의 data.json을 이 파일로 교체(Commit)하십시오.", 6000); }
+      catch(e){ if(e&&e.code==="declined") return;
+        toast("저장이 완료되지 않았습니다."); }
+      return;
+    }
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([payload],{type:"application/json"}));
+    a.download="data.json"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+    toast("data.json 다운로드 완료. GitHub 저장소의 data.json을 교체하십시오.", 6000);
+  },
+  async exportExcel(){
+    if(!S.sel) return;
+    const {y,m}=S.sel;
+    const wb=XLSX.utils.book_new();
+    const tt=teamTable(S.months[mkey(y,m)],"전체","기본순서");
+    const fs=finSummary(y,m); const rs=ratioSeries(y);
+    const sum=[["Engineering Monthly Dashboard", plabel(y,m)],[],
+      ["지표","값"],["FE 포함 여부", S.feInclude?"포함":"제외"],
+      ["총 입력 MH", tt.total],
+      ["수행 WORKLOAD율(%)", tt.division["수행"]?+tt.division["수행"].pct.toFixed(2):null],
+      ["공사원가율(인건비) 실적(%)", rs.actual[m-1]==null?"미입력":+rs.actual[m-1].toFixed(2)],
+      ...fs.rows.map(r=>[r.label+" 실적(백만원)", r.mActual==null?"미입력":+r.mActual.toFixed(1)])];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sum), "Executive Summary");
+    const twl=[["팀","총 MH",...tt.cats.flatMap(c=>[c+" MH",c+" %"])],
+      [TOTAL_LABEL, +tt.total.toFixed(1),
+        ...tt.cats.flatMap(c=>[+(tt.division[c]?tt.division[c].mh:0).toFixed(1),
+          +(tt.division[c]?tt.division[c].pct:0).toFixed(1)])],
+      ...tt.teams.map(t=>[t.name+(ANALYSIS_EXCLUDE.includes(t.name)?" (분석 제외)":""),
+        +t.total.toFixed(1),
+        ...tt.cats.flatMap(c=>[+(t.catMH[c]||0).toFixed(1), +t.pct[c].toFixed(1)])])];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(twl), "Team Workload");
+    const projDoc=S.months[mkey(y,m)];
+    if(projDoc && projDoc.projects && projDoc.projects.length){
+      const tot=tt.total||projDoc.totalMH||1;
+      const adjX=(p,c)=>Math.max(0,(p.mh[c]||0)-(!S.feInclude?((p.fe&&p.fe[c])||0):0));
+      const pjs=[["프로젝트(활동 구분)","수행 MH","지원 MH","합계 MH","LOAD율 %"],
+        ...projDoc.projects.map(p=>{
+          const su=adjX(p,"수행"), ji=adjX(p,"지원");
+          return [p.name, +su.toFixed(1), +ji.toFixed(1),
+            +(su+ji).toFixed(1), +((su+ji)/tot*100).toFixed(1)];
+        }).filter(r=>r[3]>0)];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(pjs), "Project Load");
+    }
+    const fin=[["구분","월 계획","월 실적","증감","누계 계획","누계 실적","누계 증감","누계 기준"],
+      ...fs.rows.map(r=>[r.label, r.mPlan, r.mActual??"미입력", r.mVar??"-", r.yPlan, r.yActual, r.yVar??"-", r.basis?("1~"+r.basis+"월"):"-"])];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(fin), "Financial");
+    const trend=[["연월","총 MH",...CATS.map(c=>c+" %")]];
+    for(const p of periods()){ const t=teamTable(S.months[p.key],"전체","기본순서");
+      trend.push([plabel(p.y,p.m), +t.total.toFixed(1), ...CATS.map(c=>t.division[c]?+t.division[c].pct.toFixed(2):0)]); }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(trend), "Monthly Trend");
+    const out=XLSX.write(wb,{type:"array",bookType:"xlsx"});
+    try{ await dl.save({filename:"dashboard_"+y+String(m).padStart(2,"0")+".xlsx", data:out}); toast("Excel 파일이 저장되었습니다."); }
+    catch(e){ if(e && e.code==="declined") return; toast("저장이 완료되지 않았습니다."); }
+  },
+};
+
+/* ---------- init ---------- */
+renderAll();
+Store.init();
+(async()=>{ try{
+  if(window.claude && window.claude.use){
+    const dl=await window.claude.use("downloads");
+    if(dl){ S.canDownload=true; renderAll(); }
+  }
+}catch(e){} })();
+</script>
+
+</body>
+</html>
