@@ -198,12 +198,14 @@ table.fin td.miss{color:var(--ink3); font-size:11.5px}
   padding:8px 14px; background:var(--panel2)}
 .avg-box .k{color:var(--ink2); white-space:nowrap}
 .avg-box .v{font-weight:700; text-align:right; font-size:15px}
-/* 누적 집계 상위 5 하이라이트 */
-tr.cum-t5 td{background:rgba(192,0,0,.045)}
-tr.cum-t5 td:first-child{border-left:2px solid var(--v-red)}
-tr.cum-t5 td:last-child{border-right:2px solid var(--v-red)}
-tr.cum-t5-first td{border-top:2px solid var(--v-red)}
-tr.cum-t5-last td{border-bottom:2px solid var(--v-red)}
+.avg-box .p{grid-column:1/-1; font-size:11px; color:var(--ink3);
+  text-align:right; border-bottom:1px dashed var(--line); padding-bottom:3px}
+/* 누적 집계 상위 5 하이라이트 (table.data 기본 테두리보다 우선) */
+table.data tr.cum-t5 td{background:rgba(192,0,0,.045)}
+table.data tr.cum-t5 td:first-child{border-left:2px solid var(--v-red)}
+table.data tr.cum-t5 td:last-child{border-right:2px solid var(--v-red)}
+table.data tr.cum-t5-first td{border-top:2px solid var(--v-red)}
+table.data tr.cum-t5-last td{border-bottom:2px solid var(--v-red)}
 /* ============ charts ============ */
 .chart{position:relative}
 .chart svg{display:block; width:100%; height:auto}
@@ -1223,6 +1225,7 @@ function renderDash(v){
     const d=(pv!=null&&av!=null)? av-pv : null;
     const dCol=d==null?"var(--v-neutral)":(d>0?"var(--v-blue)":(d<0?"var(--v-red)":"var(--v-neutral)"));
     return `<div class="avg-box num" title="${y}년 1~${m}월 평균">
+    <span class="p">'${String(y).slice(2)}년 ${m}월까지 기준</span>
     <span class="k">계획 평균 (PLAN)</span>
     <span class="v" style="color:var(--v-red)"${pTip?` title="${pTip}"`:""}>${pv==null?"-":pv.toFixed(1)+"%"}</span>
     <span class="k">실제 평균 (ACTUAL)</span>
