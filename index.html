@@ -1249,10 +1249,12 @@ function renderDash(v){
     ${avgBox(planAvgVal, costActAvg)}</div>`;
   html+=`<div class="legend center sp lg2"><span class="it"><span class="sw" style="background:var(--v-red)"></span>계획</span>
     <span class="it"><span class="sw" style="background:${CAT_COLORS["수행"]}"></span>실적</span></div>`;
+  /* 실적은 조회월까지만 표시 (계획은 1~12월 유지) */
+  const actualClip=rs.actual.map((v,i)=> i<m ? v : null);
   /* Data Label: 계획 위 / 실적 아래, 실적>계획이면 반대 */
   const ptLabels=[];
   for(let i=0;i<12;i++){
-    const p=rs.plan[i], a=rs.actual[i];
+    const p=rs.plan[i], a=actualClip[i];
     const actualHigher=(p!=null && a!=null && a>p);
     if(p!=null) ptLabels.push({i, v:p, pos:actualHigher?"below":"above",
       color:"var(--v-red)", text:p.toFixed(1)+"%"});
@@ -1262,10 +1264,10 @@ function renderDash(v){
   html+=svgLine({series:[
       {name:"계획", color:"var(--v-red)", dash:true, markers:false, faint:true,
        width:3.3, values:rs.plan},
-      {name:"실적", color:CAT_COLORS["수행"], width:3.7, values:rs.actual}],
+      {name:"실적", color:CAT_COLORS["수행"], width:3.7, values:actualClip}],
     labels:Array.from({length:12},(_,i)=>(i+1)+"월"), ySuffix:"%", w:1360, h:370,
     hl:m, pointLabels:ptLabels, labelSize:18, bigAxis:true, yDomain:[40,80],
-    extra:i=>{ const p=rs.plan[i],a=rs.actual[i];
+    extra:i=>{ const p=rs.plan[i],a=actualClip[i];
       return (p!=null&&a!=null)?`계획대비 ${pp1(a-p)}`:""; }});
   html+=`</section>`;
 
@@ -1406,7 +1408,8 @@ function renderDash(v){
     const labels=Array.from({length:12},(_,i)=>(i+1)+"월");
     const catVals=cat=>{
       const vals=Array(12).fill(null);
-      yearMonths.forEach(p=>{ const tb=teamTable(S.months[p.key],"전체","기본순서");
+      yearMonths.forEach(p=>{ if(p.m>m) return;   // 실적은 조회월까지만 표시
+        const tb=teamTable(S.months[p.key],"전체","기본순서");
         if(S.trendSel===TOTAL_LABEL)
           vals[p.m-1]=tb.division[cat]?tb.division[cat].pct:null;
         else{ const row=tb.teams.find(x=>x.name===S.trendSel);
