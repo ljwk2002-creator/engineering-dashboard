@@ -1076,16 +1076,18 @@ function renderDash(v){
 
   /* KPI */
   const kpi=[];
-  {
-    const p=tt.division["수행"]?tt.division["수행"].pct:null;
-    let sub="전월 데이터 없음";
-    if(p!=null && prev && prev.division["수행"]) sub="전월 대비 "+pp1(p-prev.division["수행"].pct);
-    kpi.push({l:"수행 WORKLOAD", v:pct1(p), u:"", s:sub, c:""});
-  }
-  const rCost=fs.rows[0], rSga=fs.rows[1], rAdm=fs.rows[2];
   /* 증감 색: posGood=true면 +가 긍정(파랑)/-가 부정(빨강), false면 반대 */
   const signCls=(d,posGood)=> (d==null||d===0)?"" :
     (d>0 ? (posGood?"blue":"red") : (posGood?"red":"blue"));
+  {
+    /* 수행 WORKLOAD — 계획(PLAN)=해당 월 공사원가율(인건비) 계획, +파랑/-빨강 */
+    const p=tt.division["수행"]?tt.division["수행"].pct:null;
+    const pl=rs.plan[m-1];
+    const d=(p!=null&&pl!=null)? p-pl : null;
+    kpi.push({l:"수행 WORKLOAD (MH 기준)", v:pct1(p), u:"",
+      s:pl!=null?"계획 대비 (PLAN) "+pp1(d):"계획 없음", c:signCls(d,true)});
+  }
+  const rCost=fs.rows[0], rSga=fs.rows[1], rAdm=fs.rows[2];
   {
     /* 공사원가율(인건비) = 원가 / (원가+판관비) — +가 긍정 */
     const a=rs.actual[m-1], p=rs.plan[m-1];
