@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engineering EIS 경영진 사용가이드 · 2026년 8월</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<style>
+:root{
+  --ink:#0E1C2B;
+  --paper:#EDF0F3;
+  --panel:#FFFFFF;
+  --steel:#5A6E80;
+  --rule:#C9D2DA;
+  --blue:#2B5C8A;
+  --blue-lt:#7FA8C9;
+  --green:#2E7D62;
+  --amber:#B8730F;
+  --amber-soft:#FBF1DF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Pretendard','Pretendard Variable','Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif;
+  background:var(--paper);color:var(--ink);font-size:15px;line-height:1.65;
+  font-feature-settings:"tnum";
+}
+.sheet{max-width:1020px;margin:0 auto;padding:0 28px 72px}
+
+/* 헤더 */
+.masthead{background:var(--ink);color:#fff;margin:0 -28px 40px;padding:42px 28px 34px}
+.masthead .inner{max-width:964px;margin:0 auto}
+.masthead .en{font-size:13px;color:#8FA6BA;letter-spacing:.04em;margin-bottom:9px}
+.masthead h1{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.28}
+.masthead p{color:#B7C6D3;margin-top:11px;max-width:64ch;font-size:14.5px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.chip{display:flex;align-items:center;gap:9px;background:#1B2E42;border:1px solid #2E4459;
+  border-radius:3px;padding:9px 14px;font-size:13.5px;color:#E4ECF2}
+.chip b{font-weight:700;color:#fff}
+.chip small{color:#8FA6BA;font-size:12px}
+.chip .toggle{width:30px;height:16px;border-radius:9px;background:#5FBF97;position:relative;flex:none}
+.chip .toggle::after{content:"";position:absolute;right:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#fff}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:#5FBF97;flex:none}
+
+/* 섹션 */
+section{margin-bottom:50px}
+.head{display:flex;align-items:baseline;gap:14px;border-bottom:2px solid var(--ink);
+  padding-bottom:9px;margin-bottom:20px}
+.head .no{font-size:15px;font-weight:800;color:var(--blue);flex:none}
+.head h2{font-size:21px;font-weight:800;letter-spacing:-.01em}
+.head .sub{margin-left:auto;font-size:13px;color:var(--steel);text-align:right}
+.lead{color:#33455A;margin-bottom:18px;max-width:72ch}
+
+/* 2단 레이아웃: 화면 예시 + 사용법 */
+.split{display:grid;grid-template-columns:1.15fr 1fr;gap:22px;align-items:start}
+.split.rev{grid-template-columns:1fr 1.15fr}
+
+/* 화면 목업 */
+.screen{background:var(--panel);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.screen .bar{background:#E3E9EE;border-bottom:1px solid var(--rule);padding:9px 14px;
+  font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.screen .bar .mo{margin-left:auto;font-weight:600;color:var(--steel);font-size:12.5px}
+.screen .body{padding:16px}
+
+/* 탭·셀렉터 목업 */
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tab{border:1px solid var(--rule);border-radius:2px;padding:5px 11px;font-size:12.5px;color:var(--steel);background:#F7F9FB}
+.tab.on{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+
+/* 스택 바 */
+.teamrow{display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:center;margin-bottom:8px}
+.teamrow .nm{font-size:13px;font-weight:600;text-align:right;color:#33455A}
+.bar-s{display:flex;height:26px;border-radius:2px;overflow:hidden}
+.bar-s span{display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#fff}
+.b1{background:var(--blue)} .b2{background:var(--blue-lt);color:#0E1C2B!important}
+.b3{background:var(--amber)} .b4{background:#D4DBE1;color:#5A6E80!important}
+.teamrow.sel .bar-s{outline:2px solid var(--amber);outline-offset:1px}
+
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--steel);margin-top:12px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+/* 클릭 결과 팝업 */
+.popup{border:2px solid var(--amber);background:var(--amber-soft);border-radius:3px;
+  padding:14px 16px;margin-top:14px}
+.popup .cap{font-size:12.5px;font-weight:800;color:var(--amber);margin-bottom:2px}
+.popup h4{font-size:15px;font-weight:800;margin-bottom:10px}
+.popup .load{display:flex;gap:18px;padding:9px 12px;background:#fff;border:1px solid #E0C79A;
+  border-radius:2px;margin-bottom:11px;font-size:13px}
+.popup .load div span{display:block;color:var(--steel);font-size:11.5px}
+.popup .load div b{font-size:16px;font-weight:800}
+.top5{width:100%;border-collapse:collapse;font-size:13px;background:#fff}
+.top5 th,.top5 td{border:1px solid #E0C79A;padding:6px 10px}
+.top5 th{background:#F3E4CB;font-size:12px;font-weight:700;text-align:left}
+.top5 td.n{text-align:right;font-variant-numeric:tabular-nums}
+
+/* 사용법 카드 */
+.howto{background:var(--panel);border:1px solid var(--rule);border-radius:4px;padding:18px 20px}
+.howto h3{font-size:16px;font-weight:800;margin-bottom:12px;letter-spacing:-.01em}
+.howto ol{list-style:none;counter-reset:h}
+.howto ol li{counter-increment:h;position:relative;padding:0 0 12px 30px;font-size:14px;color:#33455A}
+.howto ol li::before{content:counter(h);position:absolute;left:0;top:2px;width:20px;height:20px;
+  background:var(--blue);color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:20px;border-radius:2px}
+.howto ol li b{color:var(--ink)}
+.howto .tip{border-top:1px solid var(--rule);margin-top:4px;padding-top:11px;font-size:13px;color:var(--steel)}
+.howto .tip b{color:var(--blue)}
+
+.keybox{background:var(--ink);color:#DCE7F1;border-radius:3px;padding:10px 13px;
+  font-size:13px;font-weight:600;margin:12px 0}
+.keybox em{font-style:normal;color:#7FB2E0}
+
+/* 강조 섹션 */
+.spot{border:2px solid var(--amber);border-radius:5px;padding:2px;background:var(--amber-soft)}
+.spot .in{background:var(--paper);border-radius:3px;padding:20px}
+.spotlabel{display:inline-block;background:var(--amber);color:#fff;font-size:12px;font-weight:800;
+  padding:3px 10px;border-radius:2px;margin-bottom:12px}
+
+/* 라인 차트 */
+.chart{width:100%;height:auto}
+
+/* Project 막대 */
+.pbar{display:grid;grid-template-columns:92px 1fr 52px;gap:9px;align-items:center;margin-bottom:7px;font-size:12.5px}
+.pbar .nm{color:#33455A;font-weight:600;text-align:right}
+.pbar .track{background:#E7ECF0;border-radius:2px;height:22px;overflow:hidden}
+.pbar .fill{background:var(--blue);height:100%;border-radius:2px}
+.pbar .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.pbar.sel .track{outline:2px solid var(--amber);outline-offset:1px}
+.pbar.sel .fill{background:var(--amber)}
+
+/* 일반 표 */
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff}
+.tbl th,.tbl td{border:1px solid var(--rule);padding:7px 11px;text-align:left}
+.tbl th{background:#E3E9EE;font-size:12.5px;font-weight:700}
+.tbl td.n{text-align:right;font-variant-numeric:tabular-nums}
+.tbl tr.sel td{background:var(--amber-soft);border-color:#E0C79A}
+
+/* Insight */
+.insights{background:var(--panel);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
+.ins{padding:11px 18px;border-bottom:1px solid var(--rule);font-size:14px;display:flex;gap:12px}
+.ins:last-child{border-bottom:none}
+.ins .k{color:var(--blue);font-weight:800;flex:none;width:14px}
+.ins .t{color:#33455A}
+
+/* Flow */
+.flow{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:18px}
+.step{background:var(--panel);border:1px solid var(--rule);border-top:3px solid var(--blue);
+  border-radius:0 0 3px 3px;padding:12px}
+.step .s{font-size:11.5px;font-weight:800;color:var(--blue)}
+.step h4{font-size:13.5px;font-weight:700;margin:3px 0 4px}
+.step p{font-size:12px;color:var(--steel);line-height:1.5}
+
+/* 유의사항 */
+.cautions{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.caution{background:var(--panel);border:1px solid var(--rule);border-left:3px solid var(--amber);
+  border-radius:0 3px 3px 0;padding:13px 15px}
+.caution h4{font-size:14px;font-weight:700;margin-bottom:4px}
+.caution p{font-size:12.5px;color:var(--steel);line-height:1.55}
+
+footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:var(--steel);
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media(max-width:860px){
+  .split,.split.rev{grid-template-columns:1fr}
+  .flow{grid-template-columns:repeat(2,1fr)}
+  .cautions{grid-template-columns:1fr}
+  .masthead h1{font-size:25px}
+}
+@media print{
+  body{background:#fff;font-size:11.5px}
+  .sheet{max-width:none;padding:0 10px}
+  section{margin-bottom:24px;break-inside:avoid}
+  .masthead{margin:0 -10px 22px;padding:22px 10px}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="inner">
+    <div class="en">Engineering Monthly Management Dashboard</div>
+    <h1>Engineering EIS 사용가이드 — 2026년 8월 화면 기준</h1>
+    <p>각 화면에서 무엇을 누르면 무엇이 열리는지를 중심으로 정리했습니다. 아래 순서대로 조작하면 수치에서 원인까지 이어서 확인할 수 있습니다.</p>
+    <div class="toolbar">
+      <div class="chip"><b>2026 / 8월</b><small>우측 상단에서 연·월 선택</small></div>
+      <div class="chip"><span class="toggle"></span><b>FE 포함</b><small>WORKLOAD·Project 공통 적용</small></div>
+      <div class="chip"><span class="dot"></span><b>Executive View</b><small>운영 기능 숨김</small></div>
+    </div>
+  </div>
+</header>
+
+<div class="sheet">
+
+<section>
+  <div class="head">
+    <span class="no">01</span>
+    <h2>기준월과 FE 설정 바꾸기</h2>
+    <span class="sub">모든 화면의 출발점</span>
+  </div>
+  <div class="split">
+    <div class="screen">
+      <div class="bar">화면 상단 조회 영역<span class="mo">데이터 갱신일 확인</span></div>
+      <div class="body">
+        <div class="tabs">
+          <span class="tab">2025</span><span class="tab on">2026</span>
+          <span class="tab">6월</span><span class="tab">7월</span><span class="tab on">8월</span><span class="tab">9월</span>
+        </div>
+        <div class="keybox">8월 선택 → <em>재무현황 · 팀별 WORKLOAD · Project · Insight</em>가 모두 8월 기준으로 함께 변경</div>
+        <div class="tabs" style="margin-bottom:0">
+          <span class="tab on">FE 포함 ON</span><span class="tab">FE 제외 OFF</span>
+        </div>
+      </div>
+    </div>
+    <div class="howto">
+      <h3>이렇게 사용합니다</h3>
+      <ol>
+        <li>우측 상단에서 <b>연도 → 월</b> 순으로 선택합니다. 8월을 고르면 화면 전체가 8월 기준으로 다시 그려집니다.</li>
+        <li><b>FE 포함 Toggle</b>로 FE 인력 MH를 넣거나 뺍니다. ON이면 포함, OFF면 제외이며 기본값은 포함입니다.</li>
+        <li>분석을 시작하기 전에 지금 화면이 <b>FE 포함 상태인지 먼저 확인</b>합니다. 이 설정이 달라지면 뒤의 모든 비율이 달라집니다.</li>
+      </ol>
+      <p class="tip">Executive View는 경영진 조회용 기본 화면입니다. 데이터 Upload·관리자 수정 같은 운영 기능이 숨겨진 상태로 표시됩니다.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="no">02</span>
+    <h2>팀별 WORKLOAD 구성</h2>
+    <span class="sub">막대를 클릭해 Drill-down</span>
+  </div>
+  <p class="lead">각 팀의 전체 MH를 기준으로 업무 유형별 투입 비중을 봅니다. 업무분류는 <b>일반 = 일반 + 하자보수</b>, <b>견적 = 견적 + 영업</b>으로 묶입니다. 일반 업무는 메인 그래프에서는 빠지지만 상세 데이터에는 포함됩니다.</p>
+
+  <div class="spot">
+    <div class="in">
+      <span class="spotlabel">가장 많이 쓰는 기능 · 막대 클릭</span>
+      <div class="split">
+        <div class="screen">
+          <div class="bar">팀별 WORKLOAD 구성<span class="mo">2026년 8월 · FE 포함</span></div>
+          <div class="body">
+            <div class="tabs">
+              <span class="tab on">기본순서</span><span class="tab">수행율 높은순</span>
+              <span class="tab">일반율 높은순</span><span class="tab">총 MH 높은순</span>
+            </div>
+            <div class="teamrow sel">
+              <span class="nm">A팀</span>
+              <div class="bar-s">
+                <span class="b1" style="flex:70">수행 70%</span>
+                <span class="b2" style="flex:10">지원 10%</span>
+                <span class="b3" style="flex:5">5%</span>
+                <span class="b4" style="flex:15">일반 15%</span>
+              </div>
+            </div>
+            <div class="teamrow">
+              <span class="nm">B팀</span>
+              <div class="bar-s">
+                <span class="b1" style="flex:52">수행 52%</span>
+                <span class="b2" style="flex:18">지원 18%</span>
+                <span class="b3" style="flex:12">견적 12%</span>
+                <span class="b4" style="flex:18">일반 18%</span>
+              </div>
+            </div>
+            <div class="teamrow">
+              <span class="nm">C팀</span>
+              <div class="bar-s">
+                <span class="b1" style="flex:44">수행 44%</span>
+                <span class="b2" style="flex:26">지원 26%</span>
+                <span class="b3" style="flex:8">8%</span>
+                <span class="b4" style="flex:22">일반 22%</span>
+              </div>
+            </div>
+            <div class="legend">
+              <span><i style="background:#2B5C8A"></i>수행</span>
+              <span><i style="background:#7FA8C9"></i>지원</span>
+              <span><i style="background:#B8730F"></i>견적 = 견적 + 영업</span>
+              <span><i style="background:#D4DBE1"></i>일반 = 일반 + 하자보수</span>
+            </div>
+
+            <div class="popup">
+              <div class="cap">A팀 · 수행 영역을 클릭한 결과</div>
+              <h4>활동구분 Top 5</h4>
+              <div class="load">
+                <div><span>선택 팀</span><b>A팀</b></div>
+                <div><span>업무구분</span><b>수행</b></div>
+                <div><span>팀 LOAD율</span><b>70.0%</b></div>
+              </div>
+              <table class="top5">
+                <tr><th>순위</th><th>활동구분</th><th style="text-align:right">MH</th><th style="text-align:right">비중</th></tr>
+                <tr><td>1</td><td>상세설계</td><td class="n">1,240</td><td class="n">28.4%</td></tr>
+                <tr><td>2</td><td>도면작성</td><td class="n">980</td><td class="n">22.5%</td></tr>
+                <tr><td>3</td><td>기술검토</td><td class="n">610</td><td class="n">14.0%</td></tr>
+                <tr><td>4</td><td>구매·발주지원</td><td class="n">430</td><td class="n">9.9%</td></tr>
+                <tr><td>5</td><td>현장기술지원</td><td class="n">300</td><td class="n">6.9%</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="howto">
+          <h3>이렇게 사용합니다</h3>
+          <ol>
+            <li>먼저 막대를 눈으로 비교합니다. 위 예시에서 A팀은 전체 MH 중 수행 70%, 지원 10%, 견적·영업 5%가 투입된 상태입니다.</li>
+            <li><b>막대의 특정 영역을 클릭</b>합니다. 클릭한 팀·업무구분의 <b>활동구분 Top 5</b>가 열려, 그 MH가 실제로 어떤 업무에 쓰였는지 확인할 수 있습니다.</li>
+            <li>같은 창에 <b>선택한 팀의 LOAD율</b>이 함께 표시됩니다. 비율이 높다는 사실과 그 비율을 만든 활동을 한 번에 볼 수 있습니다.</li>
+            <li>다른 영역(지원·견적)을 클릭하면 같은 방식으로 해당 업무구분의 Top 5로 바뀝니다.</li>
+            <li>비교 관점을 바꾸려면 상단에서 <b>기본순서 / 수행율 높은순 / 일반율 높은순 / 총 MH 높은순</b>으로 정렬합니다.</li>
+          </ol>
+          <p class="tip"><b>이럴 때 씁니다.</b> 특정 팀의 수행율이 다른 팀보다 눈에 띄게 낮으면, 그 팀의 지원 또는 일반 영역을 클릭해 어떤 활동이 MH를 가져갔는지부터 확인합니다. 기술기획팀은 이 화면에서 제외되지만 본부 ‘전체’ 합계에는 포함됩니다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="no">03</span>
+    <h2>월별 WORKLOAD Trend</h2>
+    <span class="sub">조회 대상을 전체 ↔ 개별 팀으로 전환</span>
+  </div>
+  <div class="split rev">
+    <div class="howto">
+      <h3>이렇게 사용합니다</h3>
+      <ol>
+        <li>기본은 <b>전체</b> 기준입니다. 1월부터 8월까지 수행율·지원율·견적율이 어떻게 움직였는지 먼저 봅니다.</li>
+        <li>상단 <b>조회 대상을 개별 팀으로 바꿉니다.</b> 전체에서 보이던 변화가 특정 팀에서 온 것인지, 여러 팀에 걸친 것인지 구분됩니다.</li>
+        <li>팀을 하나씩 바꿔가며 같은 구간을 비교합니다. 한 팀만 반대로 움직인다면 그 팀이 원인일 가능성이 큽니다.</li>
+        <li>원인을 찾았으면 팀별 WORKLOAD 화면으로 돌아가 해당 팀 막대를 클릭해 활동구분까지 확인합니다.</li>
+      </ol>
+      <p class="tip"><b>판단 기준.</b> 수행율이 계속 낮아지면서 견적율이나 지원율이 올라가면 업무구성이 바뀌는 중입니다. 단월 등락과 구분하려면 최소 3개월 흐름을 봅니다. Trend는 월별 데이터가 <b>2개월 이상</b> 등록되어야 표시됩니다.</p>
+    </div>
+    <div class="screen">
+      <div class="bar">월별 Workload 트렌드<span class="mo">2026년 1월 ~ 8월</span></div>
+      <div class="body">
+        <div class="tabs">
+          <span class="tab on">전체</span><span class="tab">A팀</span><span class="tab">B팀</span><span class="tab">C팀</span>
+        </div>
+        <svg class="chart" viewBox="0 0 460 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="월별 수행율 지원율 견적율 추이">
+          <g stroke="#E7ECF0" stroke-width="1">
+            <line x1="34" y1="20" x2="450" y2="20"/><line x1="34" y1="60" x2="450" y2="60"/>
+            <line x1="34" y1="100" x2="450" y2="100"/><line x1="34" y1="140" x2="450" y2="140"/>
+            <line x1="34" y1="180" x2="450" y2="180"/>
+          </g>
+          <g fill="#5A6E80" font-size="9" font-family="sans-serif">
+            <text x="6" y="23">80</text><text x="6" y="63">60</text><text x="6" y="103">40</text>
+            <text x="6" y="143">20</text><text x="10" y="183">0</text>
+          </g>
+          <polyline fill="none" stroke="#2B5C8A" stroke-width="2.5"
+            points="52,58 108,62 164,56 220,66 276,70 332,64 388,72 444,54"/>
+          <polyline fill="none" stroke="#7FA8C9" stroke-width="2.5"
+            points="52,146 108,142 164,148 220,138 276,134 332,140 388,132 444,144"/>
+          <polyline fill="none" stroke="#B8730F" stroke-width="2.5"
+            points="52,166 108,168 164,162 220,164 276,158 332,160 388,156 444,162"/>
+          <g fill="#2B5C8A"><circle cx="444" cy="54" r="3.5"/></g>
+          <text x="418" y="44" fill="#2B5C8A" font-size="10" font-weight="700" font-family="sans-serif">65.2%</text>
+          <g fill="#5A6E80" font-size="9.5" font-family="sans-serif" text-anchor="middle">
+            <text x="52" y="197">1월</text><text x="108" y="197">2월</text><text x="164" y="197">3월</text>
+            <text x="220" y="197">4월</text><text x="276" y="197">5월</text><text x="332" y="197">6월</text>
+            <text x="388" y="197">7월</text><text x="444" y="197">8월</text>
+          </g>
+        </svg>
+        <div class="legend">
+          <span><i style="background:#2B5C8A"></i>수행율</span>
+          <span><i style="background:#7FA8C9"></i>지원율</span>
+          <span><i style="background:#B8730F"></i>견적율</span>
+        </div>
+        <div class="keybox" style="margin-bottom:0">8월 수행 WORKLOAD 65.2% <em>·</em> 전월 대비 +3.1%p</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="no">04</span>
+    <h2>수행 Project Workload율</h2>
+    <span class="sub">조회 방식 전환 · 막대 선택</span>
+  </div>
+  <div class="split">
+    <div class="screen">
+      <div class="bar">수행 Project Workload율<span class="mo">2026년 8월 · 본부 전체 MH 기준</span></div>
+      <div class="body">
+        <div class="tabs">
+          <span class="tab on">수행 + 지원</span><span class="tab">수행</span><span class="tab">지원</span>
+        </div>
+        <div class="pbar sel"><span class="nm">A Project</span><div class="track"><div class="fill" style="width:88%"></div></div><span class="v">18.6%</span></div>
+        <div class="pbar"><span class="nm">B Project</span><div class="track"><div class="fill" style="width:60%"></div></div><span class="v">12.7%</span></div>
+        <div class="pbar"><span class="nm">C Project</span><div class="track"><div class="fill" style="width:43%"></div></div><span class="v">9.1%</span></div>
+        <div class="pbar"><span class="nm">D Project</span><div class="track"><div class="fill" style="width:29%"></div></div><span class="v">6.2%</span></div>
+        <div class="pbar"><span class="nm">E Project</span><div class="track"><div class="fill" style="width:18%"></div></div><span class="v">3.8%</span></div>
+
+        <div class="popup">
+          <div class="cap">A Project 막대를 선택한 결과</div>
+          <h4>팀별 투입률 · 각 팀의 전체 MH 기준</h4>
+          <table class="top5">
+            <tr><th>팀</th><th style="text-align:right">투입 MH</th><th style="text-align:right">해당 팀 내 투입률</th></tr>
+            <tr><td>A팀</td><td class="n">2,140</td><td class="n">34.2%</td></tr>
+            <tr><td>B팀</td><td class="n">1,020</td><td class="n">16.5%</td></tr>
+            <tr><td>C팀</td><td class="n">470</td><td class="n">7.8%</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="howto">
+      <h3>이렇게 사용합니다</h3>
+      <ol>
+        <li>기본 지표는 <b>해당 Project MH ÷ 본부 전체 입력 MH × 100</b>입니다. 본부 자원이 어디에 몰려 있는지 순서대로 보입니다.</li>
+        <li>상단에서 <b>수행+지원 / 수행 / 지원</b>으로 조회 방식을 바꿉니다. ‘수행’만 볼 때와 순위가 달라지는 Project는 지원 MH가 많이 들어간 Project입니다.</li>
+        <li>궁금한 <b>Project의 막대를 선택</b>하면 그 Project에 각 팀이 얼마나 투입되고 있는지 열립니다.</li>
+        <li>이때 팀별 투입률은 <b>본부 전체가 아니라 해당 팀의 전체 MH 기준</b>입니다. 예시의 34.2%는 A팀 전체 MH의 3분의 1이 이 Project에 들어갔다는 뜻입니다.</li>
+      </ol>
+      <p class="tip"><b>이럴 때 씁니다.</b> 특정 팀의 투입률이 유독 높으면 그 Project가 팀 Capacity를 얼마나 점유하는지 판단하고, 다른 업무 지연 여부를 함께 확인합니다.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="no">05</span>
+    <h2>수행 프로젝트별 누적 집계</h2>
+    <span class="sub">Project 행을 선택해 월별 추이 확인</span>
+  </div>
+  <div class="split rev">
+    <div class="howto">
+      <h3>이렇게 사용합니다</h3>
+      <ol>
+        <li>8월을 조회 중이면 <b>등록된 월까지의 수행 MH</b>가 Project별로 누적되어 표시됩니다. 단월 화면과 달리 투입 규모의 총량을 봅니다.</li>
+        <li>구성비로 상위 Project를 먼저 확인합니다. 단월 비중은 낮아도 누적이 큰 Project가 실제 자원을 많이 쓴 Project입니다.</li>
+        <li><b>Project 행을 선택</b>하면 <b>월별 수행 MH와 LOAD율</b>이 아래에 펼쳐집니다.</li>
+        <li>월별 값이 계속 늘고 있는지, 특정 월에 몰렸다가 줄었는지를 보고 그 Project가 지금도 자원을 쓰고 있는지 판단합니다.</li>
+      </ol>
+      <p class="tip"><b>이렇게 이어서 봅니다.</b> 누적이 큰데 최근 월 LOAD가 급감했다면 종료 단계일 수 있고, 반대로 최근 월이 급증했다면 앞의 Workload율 화면에서 어느 팀이 들어갔는지 확인합니다.</p>
+    </div>
+    <div class="screen">
+      <div class="bar">수행 프로젝트별 누적 집계<span class="mo">2026년 1월 ~ 8월 누적</span></div>
+      <div class="body">
+        <table class="tbl">
+          <tr><th>Project</th><th style="text-align:right">누적 수행 MH</th><th style="text-align:right">구성비</th></tr>
+          <tr class="sel"><td>A Project</td><td class="n">18,420</td><td class="n">21.3%</td></tr>
+          <tr><td>B Project</td><td class="n">12,060</td><td class="n">13.9%</td></tr>
+          <tr><td>C Project</td><td class="n">8,940</td><td class="n">10.3%</td></tr>
+          <tr><td>D Project</td><td class="n">5,310</td><td class="n">6.1%</td></tr>
+        </table>
+        <div class="popup">
+          <div class="cap">A Project 행을 선택한 결과</div>
+          <h4>월별 수행 MH · LOAD율</h4>
+          <table class="top5">
+            <tr><th>월</th><th style="text-align:right">수행 MH</th><th style="text-align:right">LOAD율</th></tr>
+            <tr><td>6월</td><td class="n">2,180</td><td class="n">15.4%</td></tr>
+            <tr><td>7월</td><td class="n">2,640</td><td class="n">17.9%</td></tr>
+            <tr><td>8월</td><td class="n">2,910</td><td class="n">18.6%</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="no">06</span>
+    <h2>Management Insight</h2>
+    <span class="sub">읽고 끝내지 않고 Drill-down의 출발점으로</span>
+  </div>
+  <p class="lead">화면 하단에서 주요 수치 변화를 Rule 기반으로 자동 요약합니다. 이상징후나 추가 확인이 필요한 영역을 빠르게 찾는 용도로 사용하고, 문장을 읽은 뒤에는 해당 팀 또는 Project 그래프로 이동해 원인을 확인합니다.</p>
+  <div class="insights">
+    <div class="ins"><span class="k">1</span><span class="t">수행 WORKLOAD 및 전월 대비 변화 <span style="color:#5A6E80">→ 변화가 크면 Trend에서 지속성 확인</span></span></div>
+    <div class="ins"><span class="k">2</span><span class="t">일반업무 비중이 가장 높은 팀 <span style="color:#5A6E80">→ 해당 팀 막대 클릭해 활동구분 Top 5 확인</span></span></div>
+    <div class="ins"><span class="k">3</span><span class="t">견적·영업 비중이 가장 높은 팀 <span style="color:#5A6E80">→ 수주 준비 부담인지 확인</span></span></div>
+    <div class="ins"><span class="k">4</span><span class="t">총 MH 전월 대비 증감 <span style="color:#5A6E80">→ 비율 변화가 분모 변화 때문인지 확인</span></span></div>
+    <div class="ins"><span class="k">5</span><span class="t">인건비·관리비 계획대비 증감</span></div>
+    <div class="ins"><span class="k">6</span><span class="t">재무 실적 미입력 여부 <span style="color:#5A6E80">→ 미입력은 0이 아니므로 판단 보류</span></span></div>
+    <div class="ins"><span class="k">7</span><span class="t">미분류 업무구분 발생 여부 <span style="color:#5A6E80">→ 원데이터 Mapping 확인 요청</span></span></div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="no">07</span>
+    <h2>8월 조회 순서</h2>
+    <span class="sub">수치 → 변화 → 원인</span>
+  </div>
+  <div class="flow">
+    <div class="step"><span class="s">STEP 1</span><h4>기준월 확인</h4><p>2026/8월과 데이터 갱신일, FE 포함 여부</p></div>
+    <div class="step"><span class="s">STEP 2</span><h4>KPI 확인</h4><p>상단 지표 4종을 먼저 읽기</p></div>
+    <div class="step"><span class="s">STEP 3</span><h4>재무 차이</h4><p>인건비·관리비 계획대비 증감</p></div>
+    <div class="step"><span class="s">STEP 4</span><h4>팀별 WORKLOAD</h4><p>이상한 팀 막대를 클릭해 Top 5 확인</p></div>
+    <div class="step"><span class="s">STEP 5</span><h4>Trend</h4><p>전체 → 개별 팀으로 바꿔 지속성 확인</p></div>
+    <div class="step"><span class="s">STEP 6</span><h4>Project</h4><p>막대 선택으로 팀 투입 확인</p></div>
+    <div class="step"><span class="s">STEP 7</span><h4>Insight</h4><p>자동 요약으로 최종 점검</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="no">08</span>
+    <h2>조작 전에 확인할 6가지</h2>
+  </div>
+  <div class="cautions">
+    <div class="caution"><h4>미입력 ≠ 0</h4><p>재무 실적이 입력되지 않으면 ‘미입력’으로 표시됩니다. 0으로 읽지 않습니다.</p></div>
+    <div class="caution"><h4>증감의 정의</h4><p>모든 재무 증감은 ‘실적 − 계획’ 기준입니다.</p></div>
+    <div class="caution"><h4>누계 비교 기준</h4><p>항목별로 실적이 연속 입력된 월까지를 계획과 동일기간으로 비교합니다.</p></div>
+    <div class="caution"><h4>FE 포함 여부</h4><p>상단 Toggle 상태에 따라 WORKLOAD·Project 수치가 모두 달라집니다.</p></div>
+    <div class="caution"><h4>미분류 Warning</h4><p>정의되지 않은 업무구분이 있으면 경고가 표시됩니다. 원데이터 Mapping 확인이 필요합니다.</p></div>
+    <div class="caution"><h4>기술기획팀</h4><p>팀별 WORKLOAD 분석에서는 제외되지만 본부 ‘전체’ 합계에는 포함됩니다.</p></div>
+  </div>
+</section>
+
+<footer>
+  <span>Engineering EIS · 2026년 8월 조회 기준</span>
+  <span>화면의 팀명·Project명·수치는 사용법 설명을 위한 예시입니다</span>
+</footer>
+
+</div>
+</body>
+</html>
