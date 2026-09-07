@@ -198,6 +198,12 @@ table.fin td.miss{color:var(--ink3); font-size:11.5px}
   padding:8px 14px; background:var(--panel2)}
 .avg-box .k{color:var(--ink2); white-space:nowrap}
 .avg-box .v{font-weight:700; text-align:right; font-size:15px}
+/* 누적 집계 상위 5 하이라이트 */
+tr.cum-t5 td{background:rgba(192,0,0,.045)}
+tr.cum-t5 td:first-child{border-left:2px solid var(--v-red)}
+tr.cum-t5 td:last-child{border-right:2px solid var(--v-red)}
+tr.cum-t5-first td{border-top:2px solid var(--v-red)}
+tr.cum-t5-last td{border-bottom:2px solid var(--v-red)}
 /* ============ charts ============ */
 .chart{position:relative}
 .chart svg{display:block; width:100%; height:auto}
@@ -1210,19 +1216,27 @@ function renderDash(v){
     <button class="btn sm hide-print" onclick="App.openFinModal()">월별 확인</button></div>`;
   html+=finTableHTML(fs)+`</section>`;
 
-  /* 우측 상단 평균 표: 해당 연도 1월 ~ 조회월 단순 평균 */
+  /* 우측 상단 평균 표: 해당 연도 1월 ~ 조회월 단순 평균 + 차이(ACTUAL-PLAN) */
   const avg=list=>{ const v=list.filter(x=>x!=null);
     return v.length? v.reduce((s,x)=>s+x,0)/v.length : null; };
-  const avgBox=(pv,av,pTip,aTip)=>`<div class="avg-box num" title="${y}년 1~${m}월 평균">
+  const avgBox=(pv,av,pTip,aTip)=>{
+    const d=(pv!=null&&av!=null)? av-pv : null;
+    const dCol=d==null?"var(--v-neutral)":(d>0?"var(--v-blue)":(d<0?"var(--v-red)":"var(--v-neutral)"));
+    return `<div class="avg-box num" title="${y}년 1~${m}월 평균">
     <span class="k">계획 평균 (PLAN)</span>
     <span class="v" style="color:var(--v-red)"${pTip?` title="${pTip}"`:""}>${pv==null?"-":pv.toFixed(1)+"%"}</span>
     <span class="k">실제 평균 (ACTUAL)</span>
-    <span class="v" style="color:${CAT_COLORS["수행"]}"${aTip?` title="${aTip}"`:""}>${av==null?"-":av.toFixed(1)+"%"}</span></div>`;
+    <span class="v" style="color:${CAT_COLORS["수행"]}"${aTip?` title="${aTip}"`:""}>${av==null?"-":av.toFixed(1)+"%"}</span>
+    <span class="k">차이 (ACTUAL-PLAN)</span>
+    <span class="v" style="color:${dCol}">${d==null?"-":pp1(d)}</span></div>`;
+  };
+  const planAvgVal=avg(rs.plan.slice(0,m));     // 원가율 계획 평균 (트렌드에도 동일 사용)
+  const costActAvg=avg(rs.actual.slice(0,m));
 
   /* Row 2: 공사원가율(인건비) — Full Width, 1~12월 */
   html+=`<div class="section-gap"></div>`;
   html+=`<section class="panel"><div class="sec-h"><h2>공사원가율(인건비) <span class="sub"><b style="color:var(--ink)">${y}년</b> 1~12월 · 계획 vs 실적</span></h2>
-    ${avgBox(avg(rs.plan.slice(0,m)), avg(rs.actual.slice(0,m)))}</div>`;
+    ${avgBox(planAvgVal, costActAvg)}</div>`;
   html+=`<div class="legend center sp lg2"><span class="it"><span class="sw" style="background:var(--v-red)"></span>계획</span>
     <span class="it"><span class="sw" style="background:${CAT_COLORS["수행"]}"></span>실적</span></div>`;
   /* Data Label: 계획 위 / 실적 아래, 실적>계획이면 반대 */
@@ -1349,8 +1363,8 @@ function renderDash(v){
 
   /* trend */
   const yearMonths=periods().filter(p=>p.y===y);
-  /* 수행율 평균 (1월~조회월, 선택 주체 기준). 원본 Excel에 Workload 계획이
-     없어 계획 평균은 표시하지 않는다(추정 금지). */
+  /* 실제 평균 = 수행율 평균 (1월~조회월, 선택 주체 기준).
+     계획 평균 = 공사원가율(인건비)의 계획 평균과 동일. */
   let perfAvg=null;
   {
     const vals=[];
@@ -1366,8 +1380,8 @@ function renderDash(v){
     if(vals.length) perfAvg=vals.reduce((s,x)=>s+x,0)/vals.length;
   }
   html+=`<div class="section-gap"></div><section class="panel"><div class="sec-h">
-    <h2>월별 Workload 트렌드 <span class="sub">${y}년</span></h2>
-    ${avgBox(null, perfAvg, "Workload 계획 데이터 없음",
+    <h2>월별 Workload 트렌드 (MH 기준) <span class="sub">${y}년</span></h2>
+    ${avgBox(planAvgVal, perfAvg, "공사원가율(인건비) 계획 평균과 동일",
       (S.trendSel||TOTAL_LABEL)+" 수행율 평균")}</div>`;
   if(yearMonths.length>=2){
     /* 수행율(좌축) / 지원율·견적율(우축)을 하나의 그래프에.
@@ -1438,13 +1452,18 @@ function renderDash(v){
     if(!list.length){
       html+=`<div class="muted small">누적할 수행 데이터가 없습니다.</div>`;
     }else{
-      const cumRow=x=>`<tr data-cumproj="${esc(x.n)}" style="cursor:pointer" title="클릭하면 월별 투입 내역이 표시됩니다"><td>${esc(x.n)}</td><td>${nf0(x.v)}</td><td>${(x.v/totalCum*100).toFixed(1)}%</td></tr>`;
+      const cumRow=(x,cls)=>`<tr${cls?` class="${cls}"`:""} data-cumproj="${esc(x.n)}" style="cursor:pointer" title="클릭하면 월별 투입 내역이 표시됩니다"><td>${esc(x.n)}</td><td>${nf0(x.v)}</td><td>${(x.v/totalCum*100).toFixed(1)}%</td></tr>`;
       const TOPN=10;
       let shown=list, rest=[];
       if(list.length>TOPN+1){ rest=list.slice(TOPN); shown=list.slice(0,TOPN); }
       html+=`<div class="tbl-scroll"><table class="data num">
         <thead><tr><th>프로젝트(활동 구분)</th><th>누적 수행 MH (${mFirst}~${m}월)</th><th>구성비</th></tr></thead><tbody>`;
-      for(const x of shown) html+=cumRow(x);
+      /* 상위 5개: 빨간 테두리 하이라이트 (클릭 팝업 유지) */
+      const t5Last=Math.min(5, shown.length)-1;
+      shown.forEach((x,i)=>{
+        const cls = i<5 ? "cum-t5"+(i===0?" cum-t5-first":"")+(i===t5Last?" cum-t5-last":"") : "";
+        html+=cumRow(x, cls);
+      });
       if(rest.length){
         if(!S.cumExpand){
           const restSum=rest.reduce((s,x)=>s+x.v,0);
@@ -1459,7 +1478,7 @@ function renderDash(v){
       }
       html+=`<tr style="font-weight:700"><td>합계</td><td>${nf0(totalCum)}</td><td>100.0%</td></tr>`;
       html+=`</tbody></table></div>
-        <div class="fin-note">Top ${TOPN} 표시 · 행 클릭 시 월별 투입 MH·LOAD율 팝업이 표시됩니다.</div>`;
+        <div class="fin-note">Top ${TOPN} 표시 · <span style="color:var(--v-red)">빨간 테두리 = 누적 상위 5</span> · 행 클릭 시 월별 투입 MH·LOAD율 팝업이 표시됩니다.</div>`;
     }
     html+=`</section>`;
     /* 우측: Management Insight */
