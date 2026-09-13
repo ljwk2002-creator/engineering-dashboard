@@ -55,6 +55,8 @@ select:focus,input:focus,button:focus-visible{outline:2px solid var(--accent); o
 .brand .sub{font-size:12.5px; color:var(--ink2); margin-top:2px}
 .controls{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
 .controls select{min-width:86px}
+.controls .range-lb{font-size:12.5px; font-weight:600; color:var(--ink2)}
+.controls .range-tilde{color:var(--ink3); margin:0 -2px}
 .meta{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink3);
   text-align:right; margin-top:6px; width:100%}
 .rule{border:none; border-top:1px solid var(--line); margin:12px 0 16px}
@@ -359,7 +361,7 @@ function varColorVar(item, v){
 
 /* ---------- state ---------- */
 const S = {
-  tab:"dash", sel:null, months:{}, financial:{}, overrides:[], files:{},
+  tab:"dash", sel:null, range:null, months:{}, financial:{}, overrides:[], files:{},
   storeMode:null, ready:false, pending:null,
   trendSel:"전체",
   sort:"기본순서", projMode:"수행+지원", wlDetail:null, cumSel:null, cumExpand:false,
@@ -515,10 +517,23 @@ function nowStr(){ const d=new Date(), p=n=>String(n).padStart(2,"0");
    계산 Logic (Python 버전과 동일 산식)
 ===================================================================== */
 function periods(){ return Object.keys(S.months).sort().map(k=>({key:k, y:+k.slice(0,4), m:+k.slice(5)})); }
+/* 기본 조회기간: 최신 등록 월의 연도 1월(없으면 그 해 첫 등록 월) ~ 최신 등록 월 */
+function defaultRange(){
+  const ps = periods();
+  if(!ps.length) return null;
+  const last = ps[ps.length-1];
+  const first = ps.find(p=>p.y===last.y) || last;
+  return {from:first.key, to:last.key};
+}
 function ensureSel(){
   const ps = periods();
-  if(!ps.length){ S.sel=null; return; }
-  if(!S.sel || !S.months[mkey(S.sel.y,S.sel.m)]) S.sel = {y:ps[ps.length-1].y, m:ps[ps.length-1].m};
+  if(!ps.length){ S.sel=null; S.range=null; return; }
+  const keys = ps.map(p=>p.key);
+  let r = S.range || lsGet("emd-range");
+  if(!r || !r.from || !r.to || !keys.includes(r.from) || !keys.includes(r.to) || r.from>r.to)
+    r = defaultRange();
+  S.range = r;
+  S.sel = {y:+r.to.slice(0,4), m:+r.to.slice(5)};   // 기준월 = 조회 마지막 년월
 }
 function prevPeriod(y,m){ return m===1 ? {y:y-1,m:12} : {y,m:m-1}; }
 
@@ -1024,14 +1039,14 @@ function renderTabs(){
 }
 function renderControls(){
   const ps=periods();
-  const years=[...new Set(ps.map(p=>p.y))];
   let html="";
-  if(ps.length && S.sel){
-    const months=ps.filter(p=>p.y===S.sel.y).map(p=>p.m);
-    html+=`<select aria-label="연도" onchange="App.selYear(+this.value)">${years.map(y=>
-      `<option ${y===S.sel.y?"selected":""}>${y}</option>`).join("")}</select>`;
-    html+=`<select aria-label="월" onchange="App.selMonth(+this.value)">${months.map(m=>
-      `<option value="${m}" ${m===S.sel.m?"selected":""}>${m}월</option>`).join("")}</select>`;
+  if(ps.length && S.range){
+    const opts=sel=>ps.map(p=>
+      `<option value="${p.key}" ${p.key===sel?"selected":""}>${p.y}년 ${p.m}월</option>`).join("");
+    html+=`<span class="range-lb">조회기간</span>
+      <select aria-label="조회 시작 년월" onchange="App.rangeFrom(this.value)">${opts(S.range.from)}</select>
+      <span class="range-tilde">~</span>
+      <select aria-label="조회 마지막 년월" onchange="App.rangeTo(this.value)">${opts(S.range.to)}</select>`;
   }
   html+=`<span class="toggle ${S.feInclude?"on":""}" role="switch" aria-checked="${S.feInclude}" tabindex="0"
     title="FE 인력 MH를 WORKLOAD 집계에 포함/제외합니다 (모든 화면 공통 적용)"
@@ -1225,14 +1240,33 @@ function renderDash(v){
     <button class="btn sm hide-print" onclick="App.openFinModal()">월별 확인</button></div>`;
   html+=finTableHTML(fs)+`</section>`;
 
-  /* 우측 상단 평균 표: 해당 연도 1월 ~ 조회월 단순 평균 + 차이(ACTUAL-PLAN) */
+  /* ---- 조회기간(range) 기준 축/평균 ----
+     차트 축 = 조회 시작월 ~ 조회 끝연도 12월 (계획은 연말까지 표시),
+     실적·평균은 조회기간(시작월 ~ 끝월) 내에서만 집계 */
+  const R=S.range || {from:mkey(y,1), to:mkey(y,m)};
+  const rf={y:+R.from.slice(0,4), m:+R.from.slice(5)};
+  const rsOfY={}; const rsY=yy=> rsOfY[yy] ?? (rsOfY[yy]=ratioSeries(yy));
+  const axis=[];
+  { let yy=rf.y, mm=rf.m;
+    while(yy<y || (yy===y && mm<=12)){
+      axis.push({y:yy, m:mm, key:mkey(yy,mm)});
+      if(++mm>12){ mm=1; yy++; } } }
+  const hlIdx=axis.findIndex(a=>a.y===y&&a.m===m)+1;
+  const oneYear=(rf.y===y);
+  const axisLabels=axis.map(a=> oneYear? a.m+"월" : "'"+String(a.y).slice(2)+"."+a.m);
+  const inRange=a=> a.key>=R.from && a.key<=R.to;
+  const perLbl= oneYear
+    ? `'${String(y).slice(2)}년 ${rf.m}월 ~ ${m}월 기준`
+    : `'${String(rf.y).slice(2)}년 ${rf.m}월 ~ '${String(y).slice(2)}년 ${m}월 기준`;
+
+  /* 우측 상단 평균 표: 조회기간 단순 평균 + 차이(ACTUAL-PLAN) */
   const avg=list=>{ const v=list.filter(x=>x!=null);
     return v.length? v.reduce((s,x)=>s+x,0)/v.length : null; };
   const avgBox=(pv,av,pTip,aTip)=>{
     const d=(pv!=null&&av!=null)? av-pv : null;
     const dCol=d==null?"var(--v-neutral)":(d>0?"var(--v-blue)":(d<0?"var(--v-red)":"var(--v-neutral)"));
-    return `<div class="avg-box num" title="${y}년 1~${m}월 평균">
-    <span class="p">'${String(y).slice(2)}년 ${m}월까지 기준</span>
+    return `<div class="avg-box num" title="${perLbl.slice(0,-3)} 평균">
+    <span class="p">${perLbl}</span>
     <span class="k">계획 평균 (PLAN)</span>
     <span class="v" style="color:var(--v-red)"${pTip?` title="${pTip}"`:""}>${pv==null?"-":pv.toFixed(1)+"%"}</span>
     <span class="k">실제 평균 (ACTUAL)</span>
@@ -1240,21 +1274,24 @@ function renderDash(v){
     <span class="k">차이 (ACTUAL-PLAN)</span>
     <span class="v" style="color:${dCol}">${d==null?"-":pp1(d)}</span></div>`;
   };
-  const planAvgVal=avg(rs.plan.slice(0,m));     // 원가율 계획 평균 (트렌드에도 동일 사용)
-  const costActAvg=avg(rs.actual.slice(0,m));
+  const planAvgVal=avg(axis.filter(inRange).map(a=>rsY(a.y).plan[a.m-1]));   // 트렌드에도 동일 사용
+  const costActAvg=avg(axis.filter(inRange).map(a=>rsY(a.y).actual[a.m-1]));
 
-  /* Row 2: 공사원가율(인건비) — Full Width, 1~12월 */
+  /* Row 2: 공사원가율(인건비) — Full Width */
+  const axisSub= oneYear ? `<b style="color:var(--ink)">${y}년</b> ${rf.m}~12월`
+    : `<b style="color:var(--ink)">'${String(rf.y).slice(2)}년 ${rf.m}월 ~ '${String(y).slice(2)}년 12월</b>`;
   html+=`<div class="section-gap"></div>`;
-  html+=`<section class="panel"><div class="sec-h"><h2>공사원가율(인건비) <span class="sub"><b style="color:var(--ink)">${y}년</b> 1~12월 · 계획 vs 실적</span></h2>
+  html+=`<section class="panel"><div class="sec-h"><h2>공사원가율(인건비) <span class="sub">${axisSub} · 계획 vs 실적</span></h2>
     ${avgBox(planAvgVal, costActAvg)}</div>`;
   html+=`<div class="legend center sp lg2"><span class="it"><span class="sw" style="background:var(--v-red)"></span>계획</span>
     <span class="it"><span class="sw" style="background:${CAT_COLORS["수행"]}"></span>실적</span></div>`;
-  /* 실적은 조회월까지만 표시 (계획은 1~12월 유지) */
-  const actualClip=rs.actual.map((v,i)=> i<m ? v : null);
+  /* 계획 = 축 전체, 실적 = 조회기간 내에서만 */
+  const planAx=axis.map(a=>rsY(a.y).plan[a.m-1]);
+  const actAx=axis.map(a=> inRange(a)? rsY(a.y).actual[a.m-1] : null);
   /* Data Label: 계획 위 / 실적 아래, 실적>계획이면 반대 */
   const ptLabels=[];
-  for(let i=0;i<12;i++){
-    const p=rs.plan[i], a=actualClip[i];
+  for(let i=0;i<axis.length;i++){
+    const p=planAx[i], a=actAx[i];
     const actualHigher=(p!=null && a!=null && a>p);
     if(p!=null) ptLabels.push({i, v:p, pos:actualHigher?"below":"above",
       color:"var(--v-red)", text:p.toFixed(1)+"%"});
@@ -1263,11 +1300,11 @@ function renderDash(v){
   }
   html+=svgLine({series:[
       {name:"계획", color:"var(--v-red)", dash:true, markers:false, faint:true,
-       width:3.3, values:rs.plan},
-      {name:"실적", color:CAT_COLORS["수행"], width:3.7, values:actualClip}],
-    labels:Array.from({length:12},(_,i)=>(i+1)+"월"), ySuffix:"%", w:1360, h:370,
-    hl:m, pointLabels:ptLabels, labelSize:18, bigAxis:true, yDomain:[40,80],
-    extra:i=>{ const p=rs.plan[i],a=actualClip[i];
+       width:3.3, values:planAx},
+      {name:"실적", color:CAT_COLORS["수행"], width:3.7, values:actAx}],
+    labels:axisLabels, ySuffix:"%", w:1360, h:370,
+    hl:hlIdx, pointLabels:ptLabels, labelSize:18, bigAxis:true, yDomain:[40,80],
+    extra:i=>{ const p=planAx[i],a=actAx[i];
       return (p!=null&&a!=null)?`계획대비 ${pp1(a-p)}`:""; }});
   html+=`</section>`;
 
@@ -1374,13 +1411,13 @@ function renderDash(v){
   html=html.slice(0,_pjStart);
 
   /* trend */
-  const yearMonths=periods().filter(p=>p.y===y);
-  /* 실제 평균 = 수행율 평균 (1월~조회월, 선택 주체 기준).
+  const rangeMonths=periods().filter(p=>p.key>=R.from && p.key<=R.to);
+  /* 실제 평균 = 수행율 평균 (조회기간, 선택 주체 기준).
      계획 평균 = 공사원가율(인건비)의 계획 평균과 동일. */
   let perfAvg=null;
   {
     const vals=[];
-    yearMonths.filter(p=>p.m<=m).forEach(p=>{
+    rangeMonths.forEach(p=>{
       const tb=teamTable(S.months[p.key],"전체","기본순서");
       let v=null;
       if(!S.trendSel || S.trendSel===TOTAL_LABEL)
@@ -1392,28 +1429,30 @@ function renderDash(v){
     if(vals.length) perfAvg=vals.reduce((s,x)=>s+x,0)/vals.length;
   }
   html+=`<div class="section-gap"></div><section class="panel"><div class="sec-h">
-    <h2>월별 Workload 트렌드 (MH 기준) <span class="sub">${y}년</span></h2>
+    <h2>월별 Workload 트렌드 (MH 기준) <span class="sub">${oneYear? y+"년" : rf.y+"년 "+rf.m+"월 ~ "+y+"년 "+m+"월"}</span></h2>
     ${avgBox(planAvgVal, perfAvg, "공사원가율(인건비) 계획 평균과 동일",
       (S.trendSel||TOTAL_LABEL)+" 수행율 평균")}</div>`;
-  if(yearMonths.length>=2){
+  if(rangeMonths.length>=2){
     /* 수행율(좌축) / 지원율·견적율(우축)을 하나의 그래프에.
        기본은 '전체', 팀 선택 시 해당 팀의 Trend (일반율 제외) */
-    const allTeams=[...new Set(yearMonths.flatMap(p=>(S.months[p.key].teams||[]).map(t=>t.name)))]
+    const allTeams=[...new Set(rangeMonths.flatMap(p=>(S.months[p.key].teams||[]).map(t=>t.name)))]
       .filter(t=>!ANALYSIS_EXCLUDE.includes(t))
       .sort((a,b)=>teamRank(a)-teamRank(b));
     const options=[TOTAL_LABEL, ...allTeams];
     if(!options.includes(S.trendSel)) S.trendSel=TOTAL_LABEL;
     html+=`<div class="chips hide-print" style="margin-bottom:8px">${options.map(t=>
       `<button class="chip ${S.trendSel===t?"on":""}" onclick="App.trendSel('${esc(t)}')">${esc(t)}</button>`).join("")}</div>`;
-    const labels=Array.from({length:12},(_,i)=>(i+1)+"월");
+    const labels=axisLabels;
     const catVals=cat=>{
-      const vals=Array(12).fill(null);
-      yearMonths.forEach(p=>{ if(p.m>m) return;   // 실적은 조회월까지만 표시
+      const vals=Array(axis.length).fill(null);
+      rangeMonths.forEach(p=>{
+        const idx=(p.y-rf.y)*12+(p.m-rf.m);
+        if(idx<0 || idx>=axis.length) return;
         const tb=teamTable(S.months[p.key],"전체","기본순서");
         if(S.trendSel===TOTAL_LABEL)
-          vals[p.m-1]=tb.division[cat]?tb.division[cat].pct:null;
+          vals[idx]=tb.division[cat]?tb.division[cat].pct:null;
         else{ const row=tb.teams.find(x=>x.name===S.trendSel);
-          vals[p.m-1]=row? (row.pct[cat]||0) : null; } });
+          vals[idx]=row? (row.pct[cat]||0) : null; } });
       return vals;
     };
     const series=[
@@ -1431,7 +1470,7 @@ function renderDash(v){
     });
     html+=`<div class="legend center sp lg2">${series.map(s=>
       `<span class="it"><span class="sw" style="background:${s.color}"></span>${esc(s.name)}</span>`).join("")}</div>`;
-    html+=svgLine({series, labels, ySuffix:"%", w:1360, h:380, hl:m,
+    html+=svgLine({series, labels, ySuffix:"%", w:1360, h:380, hl:hlIdx,
       pointLabels:trL, labelSize:18, bigAxis:true, yDomain:[0,100], y2Domain:[0,30]});
   }else{
     html+=`<div class="muted small">월별 Trend는 2개월 이상 데이터가 축적되면 표시됩니다.</div>`;
@@ -1441,9 +1480,9 @@ function renderDash(v){
   /* Trend 아래: 수행 프로젝트별 LOAD율 */
   html+=pjSection;
 
-  /* 수행 프로젝트별 누적 집계 (업무구분 '수행' · 조회월까지 등록된 월 합산) */
+  /* 수행 프로젝트별 누적 집계 (업무구분 '수행' · 조회기간 내 등록된 월 합산) */
   {
-    const cumMonths=periods().filter(p=>p.y===y && p.m<=m);
+    const cumMonths=periods().filter(p=>p.key>=R.from && p.key<=R.to);
     const agg={};
     for(const p0 of cumMonths){
       const md=S.months[p0.key];
@@ -1455,13 +1494,18 @@ function renderDash(v){
     }
     const list=Object.entries(agg).map(([n,v])=>({n,v})).sort((a,b)=>b.v-a.v);
     const totalCum=list.reduce((s,x)=>s+x.v,0);
-    const mFirst=cumMonths.length?cumMonths[0].m:m;
-    const gapNote=cumMonths.length<(m-mFirst+1)
+    const c0=cumMonths.length?cumMonths[0]:{y,m};
+    const expected=(y-c0.y)*12+(m-c0.m)+1;
+    const gapNote=cumMonths.length<expected
       ? ` · 미등록 월 제외, 등록된 ${cumMonths.length}개월 합산` : "";
+    const cumLbl= c0.y===y ? `${y}년 ${c0.m}월 ~ ${m}월`
+      : `${c0.y}년 ${c0.m}월 ~ ${y}년 ${m}월`;
+    const cumCol= c0.y===y ? `${c0.m}~${m}월`
+      : `'${String(c0.y).slice(2)}.${c0.m}~'${String(y).slice(2)}.${m}`;
     html+=`<div class="section-gap"></div><div class="grid" style="grid-template-columns:1fr 1fr">
       <section class="panel"><div class="sec-h">
       <h2>수행 프로젝트별 누적 집계</h2>
-      <span class="sub"><b>누적 기간 : ${y}년 ${mFirst}월 ~ ${m}월</b>${gapNote} · 업무구분 '수행' MH${S.feInclude?"":" · FE 제외"}</span></div>`;
+      <span class="sub"><b>누적 기간 : ${cumLbl}</b>${gapNote} · 업무구분 '수행' MH${S.feInclude?"":" · FE 제외"}</span></div>`;
     if(!list.length){
       html+=`<div class="muted small">누적할 수행 데이터가 없습니다.</div>`;
     }else{
@@ -1470,7 +1514,7 @@ function renderDash(v){
       let shown=list, rest=[];
       if(list.length>TOPN+1){ rest=list.slice(TOPN); shown=list.slice(0,TOPN); }
       html+=`<div class="tbl-scroll"><table class="data num">
-        <thead><tr><th>프로젝트(활동 구분)</th><th>누적 수행 MH (${mFirst}~${m}월)</th><th>구성비</th></tr></thead><tbody>`;
+        <thead><tr><th>프로젝트(활동 구분)</th><th>누적 수행 MH (${cumCol})</th><th>구성비</th></tr></thead><tbody>`;
       /* 상위 5개: 빨간 테두리 하이라이트 (클릭 팝업 유지) */
       const t5Last=Math.min(5, shown.length)-1;
       shown.forEach((x,i)=>{
@@ -1848,12 +1892,14 @@ function renderAdmin(v){
 ===================================================================== */
 window.App={
   tab(t){ S.tab=t; renderAll(); },
-  selYear(y){ const ms=periods().filter(p=>p.y===y).map(p=>p.m);
-    S.sel={y, m:ms.includes(S.sel.m)?S.sel.m:ms[ms.length-1]};
+  rangeFrom(k){ const r={...S.range, from:k}; if(r.from>r.to) r.to=r.from;
+    App._setRange(r); },
+  rangeTo(k){ const r={...S.range, to:k}; if(r.from>r.to) r.from=r.to;
+    App._setRange(r); },
+  _setRange(r){ S.range=r; lsSet("emd-range", r);
+    S.sel={y:+r.to.slice(0,4), m:+r.to.slice(5)};
     S.wlDetail=null; S.projSel=null; S.trendSel=TOTAL_LABEL;
     S.cumExpand=false; renderAll(); },
-  selMonth(m){ S.sel.m=m; S.wlDetail=null; S.projSel=null;
-    S.trendSel=TOTAL_LABEL; S.cumExpand=false; renderAll(); },
   cumToggle(){ S.cumExpand=!S.cumExpand; renderAll(); },
   setSort(v){ S.sort=v; renderAll(); },
   wlDetail(team,cat){
@@ -1921,7 +1967,8 @@ window.App={
   _renderCumModal(){
     if(!S.cumSel || !S.sel) return;
     const {proj, entity}=S.cumSel; const {y,m}=S.sel;
-    const cumMonths=periods().filter(p=>p.y===y && p.m<=m);
+    const RR=S.range || {from:mkey(y,1), to:mkey(y,m)};
+    const cumMonths=periods().filter(p=>p.key>=RR.from && p.key<=RR.to);
     const teams=[...new Set(cumMonths.flatMap(p=>(S.months[p.key].teams||[]).map(t=>t.name)))]
       .filter(t=>!ANALYSIS_EXCLUDE.includes(t)).sort((a,b)=>teamRank(a)-teamRank(b));
     const entColor= entity===TOTAL_LABEL ? "var(--accent)" : (TEAM_COLORS[entity]||"var(--accent)");
@@ -1939,7 +1986,7 @@ window.App={
              -(!S.feInclude?((pr.teamsFE&&pr.teamsFE[entity]&&pr.teamsFE[entity].수행)||0):0)) : 0;
         const tr=tt0.teams.find(t=>t.name===entity); den= tr? tr.total:0;
       }
-      rows.push({m:p0.m, v, load: den? v/den*100 : null});
+      rows.push({y:p0.y, m:p0.m, v, load: den? v/den*100 : null});
       sumMH+=v; sumDen+=den;
     }
     const cumLoad= sumDen? sumMH/sumDen*100 : null;
@@ -1952,9 +1999,12 @@ window.App={
     let table=`<div class="tbl-scroll"><table class="data num"><thead>
       <tr><th>월</th><th>수행 MH</th><th>LOAD율</th><th style="width:36%"></th></tr></thead><tbody>`;
     for(const r of rows)
-      table+=`<tr><td>${y}년 ${r.m}월</td><td>${nf0(r.v)}</td><td>${r.load==null?"-":r.load.toFixed(1)+"%"}</td>
+      table+=`<tr><td>${r.y}년 ${r.m}월</td><td>${nf0(r.v)}</td><td>${r.load==null?"-":r.load.toFixed(1)+"%"}</td>
         <td><div style="height:12px;border-radius:3px;background:${entColor};width:${r.load? Math.max(1,r.load/maxLoad*100):0}%"></div></td></tr>`;
-    table+=`<tr style="font-weight:700"><td>누계 (${rows.length?rows[0].m:m}~${m}월)</td><td>${nf0(sumMH)}</td><td>${cumLoad==null?"-":cumLoad.toFixed(1)+"%"}</td><td></td></tr>`;
+    const r0=rows.length?rows[0]:{y,m};
+    const cumSpan= r0.y===y ? `${r0.m}~${m}월`
+      : `'${String(r0.y).slice(2)}.${r0.m}~'${String(y).slice(2)}.${m}`;
+    table+=`<tr style="font-weight:700"><td>누계 (${cumSpan})</td><td>${nf0(sumMH)}</td><td>${cumLoad==null?"-":cumLoad.toFixed(1)+"%"}</td><td></td></tr>`;
     table+=`</tbody></table></div>
       <div class="fin-note">LOAD율 = ${entity===TOTAL_LABEL?"본부 전체":esc(entity)}의 해당 프로젝트 수행 MH ÷ ${entity===TOTAL_LABEL?"본부":"팀"} 전체 MH${S.feInclude?"":" · FE 제외"}</div>`;
     $("#modal-title").textContent=proj+" · 월별 투입 내역";
@@ -2014,6 +2064,9 @@ window.App={
       await Store.saveFile({filename:p.filename, hash:p.hash, year:p.year, month:p.month,
         uploadedAt:nowStr(), rowCount:p.raw.recordCount,
         totalMH:Math.round(p.raw.totalMH*10)/10, baseHours:p.raw.baseHours, status:"반영"});
+      { const to=mkey(p.year,p.month);
+        const f0=periods().find(q=>q.y===p.year);
+        S.range={from:(f0&&f0.key<to)?f0.key:to, to}; lsSet("emd-range",S.range); }
       S.sel={y:p.year, m:p.month}; S.pending=null; S.tab="dash";
       toast(p.year+"년 "+p.month+"월 데이터가 반영되었습니다.");
       renderAll();
