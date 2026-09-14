@@ -179,7 +179,7 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
     <h1>Engineering EIS 사용가이드 — 2026년 8월 화면 기준</h1>
     <p>각 화면에서 무엇을 누르면 무엇이 열리는지를 중심으로 정리했습니다. 아래 순서대로 조작하면 수치에서 원인까지 이어서 확인할 수 있습니다.</p>
     <div class="toolbar">
-      <div class="chip"><b>조회기간 2026년 1월 ~ 8월</b><small>시작 년월 ~ 마지막 년월 선택</small></div>
+      <div class="chip"><b>조회월 2026년 8월</b><small>해당 년도 기준 조회 · 과거 년도는 팝업에서 체크</small></div>
       <div class="chip"><span class="toggle"></span><b>FE 포함</b><small>WORKLOAD·Project 공통 적용</small></div>
       <div class="chip"><span class="dot"></span><b>Executive View</b><small>운영 기능 숨김</small></div>
     </div>
@@ -191,7 +191,7 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
 <section>
   <div class="head">
     <span class="no">01</span>
-    <h2>조회기간과 FE 설정 바꾸기</h2>
+    <h2>조회월·조회 년도와 FE 설정 바꾸기</h2>
     <span class="sub">모든 화면의 출발점</span>
   </div>
   <div class="split">
@@ -199,14 +199,14 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
       <div class="bar">화면 상단 조회 영역<span class="mo">데이터 갱신일 확인</span></div>
       <div class="body">
         <div class="tabs" style="align-items:center">
-          <span style="font-size:12.5px;font-weight:700;color:var(--steel)">조회기간</span>
-          <span class="tab on">2025년 9월</span>
-          <span style="color:var(--steel)">~</span>
-          <span class="tab on">2026년 7월</span>
+          <span style="font-size:12.5px;font-weight:700;color:var(--steel)">조회월</span>
+          <span class="tab on">2026년</span>
+          <span class="tab on">8월</span>
+          <span class="tab">📅 조회 년도 +'25</span>
         </div>
-        <div class="keybox">2025년 9월 ~ 2026년 7월 선택 →
-          <em>공사원가율 · Workload 트렌드 · 누적 집계 · 평균 표</em>는 기간 전체,
-          <em>KPI · 팀별 WORKLOAD · Project · 인건비/관리비</em>는 마지막 월(2026년 7월) 기준</div>
+        <div class="keybox">조회월 2026년 8월 + 팝업에서 <em>2025년 체크</em> →
+          2025년부터 2026년 8월까지 조회. 그래프에서 <em>2025년은 분기 평균('25.1Q~4Q)</em>,
+          2026년은 월별 그대로(계획선은 12월까지) 표시</div>
         <div class="tabs" style="margin-bottom:0">
           <span class="tab on">FE 포함 ON</span><span class="tab">FE 제외 OFF</span>
         </div>
@@ -215,11 +215,11 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
     <div class="howto">
       <h3>이렇게 사용합니다</h3>
       <ol>
-        <li>우측 상단 <b>조회기간</b>에서 <b>시작 년월 ~ 마지막 년월</b>을 선택합니다. 연도를 넘는 기간(예: 2025년 9월 ~ 2026년 7월)도 그대로 이어서 조회됩니다.</li>
-        <li><b>별도 설정이 없으면 해당년도 1월부터 최신 월까지</b>가 기본입니다. 바꾼 기간은 브라우저에 저장되어 다음 방문에도 유지되며, 시작을 끝보다 뒤로 고르면 자동 보정됩니다.</li>
-        <li><b>기준월 = 조회 마지막 년월</b>입니다. KPI·팀별 WORKLOAD·Project·인건비/관리비는 마지막 월 기준으로, 공사원가율·트렌드·누적 집계·평균 표는 기간 전체로 표시됩니다. 공사원가율의 계획선은 마지막 연도 12월까지 이어집니다.</li>
-        <li><b>FE 포함 Toggle</b>로 FE 인력 MH를 넣거나 뺍니다. ON이면 포함, OFF면 제외이며 기본값은 포함입니다.</li>
-        <li>분석을 시작하기 전에 지금 화면의 <b>조회기간과 FE 포함 상태를 먼저 확인</b>합니다. 이 설정이 달라지면 뒤의 모든 비율이 달라집니다.</li>
+        <li>상단 <b>조회월</b>에서 년도와 월을 선택합니다. <b>조회는 조회월 기준으로 해당 년도가 원칙</b>입니다 — 그래프 축은 그 해 1월부터 12월까지, 실적은 조회월까지, 계획선은 12월까지 그려집니다.</li>
+        <li>과거 자료를 함께 보려면 <b>[📅 조회 년도]</b> 버튼을 누르고 팝업에서 <b>포함할 년도를 체크</b>합니다. 예: 조회월 2026년 8월에서 2025년을 체크하면 2025년부터 2026년 8월까지 조회됩니다. 체크 상태는 브라우저에 저장되어 유지됩니다.</li>
+        <li>과거 년도는 <b>공사원가율(인건비)·월별 Workload 트렌드</b> 그래프에 <b>분기 평균('25.1Q~4Q)</b>으로 압축 표시되고, 조회 년도는 월별 그대로 표시됩니다. 누적 집계와 평균 표는 체크한 년도를 포함한 전체 기간으로 집계됩니다.</li>
+        <li><b>KPI·팀별 WORKLOAD·Project·인건비/관리비는 조회월 기준</b>입니다. 과거 년도를 체크해도 이 화면들은 조회월 한 달을 보여줍니다.</li>
+        <li><b>FE 포함 Toggle</b>로 FE 인력 MH를 넣거나 뺍니다(기본 포함). 분석 전 지금 화면의 <b>조회월·포함 년도·FE 상태를 먼저 확인</b>하십시오 — 이 설정이 달라지면 뒤의 모든 비율이 달라집니다.</li>
       </ol>
       <p class="tip">Executive View는 경영진 조회용 기본 화면입니다. 데이터 Upload·관리자 수정 같은 운영 기능이 숨겨진 상태로 표시됩니다.</p>
     </div>
@@ -325,7 +325,7 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
     <div class="howto">
       <h3>이렇게 사용합니다</h3>
       <ol>
-        <li>기본은 <b>전체</b> 기준입니다. 조회기간(기본 1월~최신 월) 동안 수행율·지원율·견적율이 어떻게 움직였는지 먼저 봅니다. 기간을 연도 넘게 잡으면 그래프도 이어서 그려집니다.</li>
+        <li>기본은 <b>전체</b> 기준입니다. 조회월이 속한 년도 동안 수행율·지원율·견적율이 어떻게 움직였는지 먼저 봅니다. [조회 년도]에서 과거 년도를 체크하면 그 앞에 분기 평균으로 이어 그려집니다.</li>
         <li>상단 <b>조회 대상을 개별 팀으로 바꿉니다.</b> 전체에서 보이던 변화가 특정 팀에서 온 것인지, 여러 팀에 걸친 것인지 구분됩니다.</li>
         <li>팀을 하나씩 바꿔가며 같은 구간을 비교합니다. 한 팀만 반대로 움직인다면 그 팀이 원인일 가능성이 큽니다.</li>
         <li>원인을 찾았으면 팀별 WORKLOAD 화면으로 돌아가 해당 팀 막대를 클릭해 활동구분까지 확인합니다.</li>
@@ -427,7 +427,7 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
     <div class="howto">
       <h3>이렇게 사용합니다</h3>
       <ol>
-        <li><b>조회기간에 등록된 월의 수행 MH</b>가 Project별로 누적되어 표시됩니다(누적 기간은 표 위에 명기). 단월 화면과 달리 투입 규모의 총량을 봅니다.</li>
+        <li><b>조회 년도(체크한 과거 년도 포함)에 등록된 월의 수행 MH</b>가 Project별로 누적되어 표시됩니다(누적 기간은 표 위에 명기). 단월 화면과 달리 투입 규모의 총량을 봅니다.</li>
         <li>구성비로 상위 Project를 먼저 확인합니다. 단월 비중은 낮아도 누적이 큰 Project가 실제 자원을 많이 쓴 Project입니다.</li>
         <li><b>Project 행을 선택</b>하면 <b>월별 수행 MH와 LOAD율</b>이 아래에 펼쳐집니다.</li>
         <li>월별 값이 계속 늘고 있는지, 특정 월에 몰렸다가 줄었는지를 보고 그 Project가 지금도 자원을 쓰고 있는지 판단합니다.</li>
@@ -484,7 +484,7 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
     <span class="sub">수치 → 변화 → 원인</span>
   </div>
   <div class="flow">
-    <div class="step"><span class="s">STEP 1</span><h4>조회기간 확인</h4><p>조회기간(기준월=마지막 월)·데이터 갱신일·FE 포함 여부</p></div>
+    <div class="step"><span class="s">STEP 1</span><h4>조회월 확인</h4><p>조회월·포함한 과거 년도·데이터 갱신일·FE 포함 여부</p></div>
     <div class="step"><span class="s">STEP 2</span><h4>KPI 확인</h4><p>상단 지표 4종을 먼저 읽기</p></div>
     <div class="step"><span class="s">STEP 3</span><h4>재무 차이</h4><p>인건비·관리비 계획대비 증감</p></div>
     <div class="step"><span class="s">STEP 4</span><h4>팀별 WORKLOAD</h4><p>이상한 팀 막대를 클릭해 Top 5 확인</p></div>
