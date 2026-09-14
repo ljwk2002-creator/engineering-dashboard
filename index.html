@@ -367,7 +367,7 @@ const S = {
   tab:"dash", sel:null, inclYears:null, months:{}, financial:{}, overrides:[], files:{},
   storeMode:null, ready:false, pending:null,
   trendSel:"전체",
-  sort:"기본순서", projMode:"수행+지원", wlDetail:null, cumSel:null, cumExpand:false,
+  sort:"기본순서", projMode:"수행+지원", wlDetail:null, cumSel:null, cumExpand:false, trendAct:null,
   histA:null, histB:null, histFrom:null, histTo:null,
   exec: location.hash==="#exec" || lsGet("emd-exec")!==false,   // 기본: Executive View ON
   adminName: lsGet("emd-admin-name") || "admin",
@@ -1018,6 +1018,17 @@ function bindCharts(root){
     });
     el.addEventListener("mouseleave", ()=>{ $("#tip").style.display="none";
       const cross=svg.querySelector(`#${id}-cross`); if(cross) cross.setAttribute("opacity","0"); });
+    if(spec.onClick){
+      el.style.cursor="pointer";
+      el.addEventListener("click", ev=>{
+        const r=svg.getBoundingClientRect(), geo=spec._geo;
+        const fx=(ev.clientX-r.left)/r.width*geo.W;
+        const n=geo.n;
+        let i=Math.round((fx-geo.L)/(n===1?1:geo.iw/(n-1)));
+        if(spec.bar) i=Math.floor((fx-geo.L)/(geo.iw/n));
+        if(i>=0 && i<n){ $("#tip").style.display="none"; spec.onClick(i); }
+      });
+    }
   });
 }
 
@@ -1447,7 +1458,7 @@ function renderDash(v){
     if(vals.length) perfAvg=vals.reduce((s,x)=>s+x,0)/vals.length;
   }
   html+=`<div class="section-gap"></div><section class="panel"><div class="sec-h">
-    <h2>월별 Workload 트렌드 (MH 기준) <span class="sub">${oneYear? y+"년" : incYrs.map(x=>x+"년").join("·")+" + "+y+"년 · 과거 년도는 분기 평균"}</span></h2>
+    <h2>월별 Workload 트렌드 (MH 기준) <span class="sub">${oneYear? y+"년" : incYrs.map(x=>x+"년").join("·")+" + "+y+"년 · 과거 년도는 분기 평균"}${rangeMonths.length>=2?" · 그래프 클릭 시 활동구분별 실적":""}</span></h2>
     ${avgBox(planAvgVal, perfAvg, "공사원가율(인건비) 계획 평균과 동일",
       (S.trendSel||TOTAL_LABEL)+" 수행율 평균")}</div>`;
   if(rangeMonths.length>=2){
@@ -1496,7 +1507,9 @@ function renderDash(v){
     html+=`<div class="legend center sp lg2">${series.map(s=>
       `<span class="it"><span class="sw" style="background:${s.color}"></span>${esc(s.name)}</span>`).join("")}</div>`;
     html+=svgLine({series, labels, ySuffix:"%", w:1360, h:380, hl:hlIdx,
-      pointLabels:trL, labelSize:18, bigAxis:true, yDomain:[0,100], y2Domain:[0,30]});
+      pointLabels:trL, labelSize:18, bigAxis:true, yDomain:[0,100], y2Domain:[0,30],
+      extra:()=>`<span style="color:var(--ink3)">클릭하면 활동구분별 실적(MH·%)이 표시됩니다</span>`,
+      onClick:i=>App.openTrendActModal(axis[i], rangeMonths)});
   }else{
     html+=`<div class="muted small">월별 Trend는 2개월 이상 데이터가 축적되면 표시됩니다.</div>`;
   }
@@ -1975,7 +1988,7 @@ window.App={
   openDetailModal(){ App._modalList(wlModalData); },
   openProjModal(){ App._modalList(projModalData); },
   closeModal(){ const md=$("#modal"); md.hidden=true; md.classList.remove("wide");
-    S.cumSel=null; },
+    S.cumSel=null; S.trendAct=null; },
   /* 인건비/관리비 '월별 확인' 팝업: 월별 계획/실적/계획대비 증감 */
   openFinModal(){
     if(!S.sel) return;
@@ -2013,6 +2026,78 @@ window.App={
     const md=$("#modal"); md.classList.add("wide");
     $("#modal-title").textContent=y+"년 월별 계획 / 실적";
     $("#modal-body").innerHTML=t;
+    md.hidden=false;
+  },
+  /* 트렌드 점 클릭 → 해당 월(분기)의 활동구분별 실적 팝업 (MH·%) */
+  openTrendActModal(a, months){
+    if(!S.sel || !a) return;
+    const entity=(S.trendSel && S.trendSel!==TOTAL_LABEL)? S.trendSel : TOTAL_LABEL;
+    let ms, lbl;
+    if(a.q!=null){
+      ms=months.filter(x=>x.y===a.y && ((x.m-1)/3|0)===a.q);
+      lbl=`${a.y}년 ${a.q+1}분기`+(ms.length?` (${ms.map(x=>x.m+"월").join("·")} 합산)`:"");
+    }else{
+      ms=months.filter(x=>x.y===a.y && x.m===a.m);
+      lbl=`${a.y}년 ${a.m}월`;
+    }
+    if(!ms.length){ toast("해당 시점에 등록된 월 데이터가 없습니다."); return; }
+    S.trendAct={entity, lbl, keys:ms.map(x=>x.key), cat:"전체"};
+    App._renderTrendActModal();
+  },
+  trendActCat(c){ if(S.trendAct){ S.trendAct.cat=c; App._renderTrendActModal(); } },
+  _renderTrendActModal(){
+    const d=S.trendAct; if(!d) return;
+    /* 활동구분 × 업무구분 합산 (FE Toggle 반영), 분모 = 선택 주체 전체 MH */
+    const agg={}; let denom=0; const catSet=new Set();
+    for(const key of d.keys){
+      const doc=S.months[key]; if(!doc) continue;
+      const tt0=teamTable(doc,"전체","기본순서");
+      if(d.entity===TOTAL_LABEL) denom+=tt0.total;
+      else{ const tr=tt0.teams.find(t=>t.name===d.entity); denom+= tr? tr.total:0; }
+      for(const t of (doc.teams||[])){
+        if(d.entity!==TOTAL_LABEL && t.name!==d.entity) continue;
+        for(const [cat,acts] of Object.entries(t.detail||{})){
+          const fe=(t.detailFE||{})[cat]||{};
+          for(const [act,v] of Object.entries(acts||{})){
+            const adj=v-(!S.feInclude?(fe[act]||0):0);
+            if(adj<=0.001) continue;
+            catSet.add(cat);
+            const b=(agg[cat+"|"+act]??={cat, act, mh:0}); b.mh+=adj;
+          }
+        }
+      }
+    }
+    const rank=c=>{ const i=CATS.indexOf(c); return i<0?99:i; };
+    const cats=[...catSet].sort((a,b)=>rank(a)-rank(b));
+    let list=Object.values(agg);
+    if(d.cat!=="전체") list=list.filter(x=>x.cat===d.cat);
+    list.sort((a,b)=>b.mh-a.mh);
+    const chips=`<div class="chips" style="margin:2px 0 12px">${["전체",...cats].map(c=>
+      `<button class="chip ${d.cat===c?"on":""}" onclick="App.trendActCat('${esc(c)}')">${
+        c==="전체"?"전체":`<span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${CAT_COLORS[c]||"#888"};margin-right:5px;vertical-align:-1px"></span>`+esc(c)
+      }</button>`).join("")}</div>`;
+    let body;
+    if(!list.length || !denom){
+      body=`<div class="muted small">해당 시점의 ${d.entity===TOTAL_LABEL?"":esc(d.entity)+" "}활동구분 데이터가 없습니다.</div>`;
+    }else{
+      const sumMH=list.reduce((s,x)=>s+x.mh,0);
+      const maxPct=Math.max(...list.map(x=>x.mh/denom*100), 0.001);
+      body=`<div class="tbl-scroll"><table class="data num"><thead>
+        <tr><th>활동구분</th><th>업무구분</th><th>MH</th><th>비중</th><th style="width:30%"></th></tr></thead><tbody>`;
+      for(const x of list){
+        const pct=x.mh/denom*100;
+        body+=`<tr><td>${esc(x.act)}</td>
+          <td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${CAT_COLORS[x.cat]||"#888"};margin-right:6px;vertical-align:-1px"></span>${esc(x.cat)}</td>
+          <td>${nf0(x.mh)}</td><td>${pct.toFixed(1)}%</td>
+          <td><div style="height:11px;border-radius:3px;background:${CAT_COLORS[x.cat]||"var(--accent)"};width:${Math.max(1,pct/maxPct*100)}%"></div></td></tr>`;
+      }
+      body+=`<tr style="font-weight:700"><td>합계${d.cat==="전체"?"":" ("+esc(d.cat)+")"}</td><td></td><td>${nf0(sumMH)}</td><td>${(sumMH/denom*100).toFixed(1)}%</td><td></td></tr>`;
+      body+=`</tbody></table></div>
+        <div class="fin-note">비중 = 활동구분 MH ÷ ${d.entity===TOTAL_LABEL?"본부":esc(d.entity)} 전체 MH ${nf0(denom)}${S.feInclude?"":" · FE 제외"} · 상단에서 업무구분 필터</div>`;
+    }
+    const md=$("#modal"); md.classList.add("wide");
+    $("#modal-title").textContent=`${d.entity} · ${d.lbl} 활동구분별 실적`;
+    $("#modal-body").innerHTML=chips+body;
     md.hidden=false;
   },
   /* 누적 집계 행 클릭 → 월별 투입 내역 팝업 (전체/팀 전환, 팀 색상 적용) */
