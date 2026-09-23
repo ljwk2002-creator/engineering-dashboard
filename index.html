@@ -1156,7 +1156,7 @@ function renderDash(v){
     const p=tt.division["수행"]?tt.division["수행"].pct:null;
     const pl=rs.plan[m-1];
     const d=(p!=null&&pl!=null)? p-pl : null;
-    kpi.push({l:"수행 WORKLOAD (MH 기준)", v:pct1(p), u:"",
+    kpi.push({key:"perf", l:"수행 WORKLOAD (MH 기준)", v:pct1(p), u:"",
       s:pl!=null?"계획 대비 (PLAN) "+pp1(d):"계획 없음", c:signCls(d,true)});
   }
   const rCost=fs.rows[0], rSga=fs.rows[1], rAdm=fs.rows[2];
@@ -1165,8 +1165,8 @@ function renderDash(v){
     const a=rs.actual[m-1], p=rs.plan[m-1];
     const d=(a!=null&&p!=null)? a-p : null;
     kpi.push(a==null
-      ? {l:"공사원가율(인건비)", v:"미입력", u:"", s:"실적 미입력", c:""}
-      : {l:"공사원가율(인건비)", v:pct1(a), u:"",
+      ? {key:"costRatio", l:"공사원가율(인건비)", v:"미입력", u:"", s:"실적 미입력", c:""}
+      : {key:"costRatio", l:"공사원가율(인건비)", v:pct1(a), u:"",
          s:p!=null?"계획 대비 "+pp1(d):"계획 없음", c:signCls(d,true)});
   }
   {
@@ -1175,26 +1175,28 @@ function renderDash(v){
     const p=ratio(rSga.mPlan, rCost.mPlan);
     const d=(a!=null&&p!=null)? a-p : null;
     kpi.push(a==null
-      ? {l:"판관비율(인건비)", v:"미입력", u:"", s:"실적 미입력", c:""}
-      : {l:"판관비율(인건비)", v:pct1(a), u:"",
+      ? {key:"sgaRatio", l:"판관비율(인건비)", v:"미입력", u:"", s:"실적 미입력", c:""}
+      : {key:"sgaRatio", l:"판관비율(인건비)", v:pct1(a), u:"",
          s:p!=null?"계획 대비 "+pp1(d):"계획 없음", c:signCls(d,false)});
   }
   {
     /* 관리비율 = 누계실적 경비 / 누계예산 경비 */
     const v=(rAdm.yActual!=null && rAdm.yPlan)? rAdm.yActual/rAdm.yPlan*100 : null;
     kpi.push(v==null
-      ? {l:"관리비율", v:"미입력", u:"", s:"누계 실적 없음", c:""}
-      : {l:"관리비율", v:pct1(v), u:"",
+      ? {key:"admRatio", l:"관리비율", v:"미입력", u:"", s:"누계 실적 없음", c:""}
+      : {key:"admRatio", l:"관리비율", v:pct1(v), u:"",
          s:"누계 기준 1~"+rAdm.basis+"월 · 경비 실적/예산", c:""});
   }
   for(const r of fs.rows){
     kpi.push(r.mActual==null
-      ? {l:r.label, v:"미입력", u:"", s:"-", c:""}
-      : {l:r.label, v:nf1(r.mActual), u:"백만원",
+      ? {key:r.item, l:r.label, v:"미입력", u:"", s:"-", c:""}
+      : {key:r.item, l:r.label, v:nf1(r.mActual), u:"백만원",
          s:r.mVar==null?"-":"계획대비 "+sgn1(r.mVar)+"백만원",
          c:varColorClass(r.item,r.mVar)});
   }
-  const kpiCard=(k,extra="")=>`<div class="kpi ${extra}"><div class="l">${esc(k.l)}</div>
+  const kpiCard=(k,extra="")=>`<div class="kpi ${extra}"${k.key
+      ? ` style="cursor:pointer" onclick="App.openKpiModal('${k.key}')"
+         title="클릭하면 ${y}년 1~12월 계획/실적 그래프가 표시됩니다"` : ""}><div class="l">${esc(k.l)}</div>
      <div class="v num">${esc(k.v)}${k.u?`<span class="u">${k.u}</span>`:""}</div>
      <div class="s ${k.c}">${esc(k.s)}</div></div>`;
   /* 비율 KPI와 해당 금액 KPI를 같은 열에 배치 */
@@ -1398,7 +1400,7 @@ function renderDash(v){
         v:restRows.reduce((s,p)=>s+p.v,0)});
       projModalData={title:`수행 프로젝트 그 외 ${restRows.length}건`,
         items:restRows.map(p=>({a:p.name, pct:p.v/totalAll*100})),
-        note:"LOAD율 = 프로젝트 MH ÷ 전체 입력 MH"};
+        note:"LOAD율 = 프로젝트 MH ÷ 전체 입력 MH", pick:"proj"};
     }else projModalData=null;
     const maxPct=Math.max(...rows.map(p=>p.v/totalAll*100), 0.001);
     if(S.projMode==="수행+지원")
@@ -1452,7 +1454,7 @@ function renderDash(v){
           bnames+=`<div class="wlv-name" title="${esc(b.name)}">${esc(b.name)}</div>`;
         }
         const bg=`grid-template-columns:repeat(${bars.length},1fr)`;
-        html+=`<div class="wl-detail" style="margin-left:0;margin-top:12px">
+        html+=`<div class="wl-detail" id="proj-detail" style="margin-left:0;margin-top:12px">
           <div class="wl-detail-h"><span><b>${esc(p.name)}</b> · 팀별 투입률
           <span class="muted small">(각 팀 전체 MH 100% 기준 · ${ANALYSIS_EXCLUDE.join(", ")} 제외)</span></span>
           <button class="btn sm" onclick="App.projSelect(null)">닫기 ✕</button></div>
@@ -1461,7 +1463,7 @@ function renderDash(v){
             <div class="wlv-names" style="${bg};gap:0">${bnames}</div>
           </div></div>`;
       }else{
-        html+=`<div class="wl-detail" style="margin-left:0;margin-top:12px">
+        html+=`<div class="wl-detail" id="proj-detail" style="margin-left:0;margin-top:12px">
           <div class="wl-detail-h"><span><b>${esc(S.projSel)}</b> · 팀별 투입률</span>
           <button class="btn sm" onclick="App.projSelect(null)">닫기 ✕</button></div>
           <div class="muted small">팀별 데이터가 없습니다. 해당 월 Excel을 다시 Upload하면 표시됩니다.</div></div>`;
@@ -2012,9 +2014,13 @@ window.App={
   projSelect(name){ S.projSel=(name && S.projSel!==name)? name : null; renderAll(); },
   _modalList(d){
     if(!d) return;
+    const it=x=> d.pick
+      ? `<span class="wl-detail-it" style="cursor:pointer" title="클릭하면 팀별 투입률이 표시됩니다"
+           onclick="App.modalPick('${d.pick}','${esc(x.a)}')"><span>${esc(x.a)}</span><b>${x.pct.toFixed(1)}%</b></span>`
+      : `<span class="wl-detail-it"><span title="${esc(x.a)}">${esc(x.a)}</span><b>${x.pct.toFixed(1)}%</b></span>`;
     const body=`<div class="wl-detail-items num" style="grid-template-columns:1fr">`
-      + d.items.map(x=>`<span class="wl-detail-it"><span title="${esc(x.a)}">${esc(x.a)}</span><b>${x.pct.toFixed(1)}%</b></span>`).join("")
-      + `</div><div class="fin-note">${esc(d.note)}</div>`;
+      + d.items.map(it).join("")
+      + `</div><div class="fin-note">${esc(d.note)}${d.pick?" · 행 클릭 시 팀별 투입률":""}</div>`;
     $("#modal-title").textContent=d.title;
     $("#modal-body").innerHTML=body;
     $("#modal").hidden=false;
@@ -2062,6 +2068,66 @@ window.App={
     $("#modal-body").innerHTML=t;
     md.hidden=false;
   },
+  /* KPI 카드 클릭 → 해당년도 1~12월 계획 vs 실적 그래프 (실적은 조회월까지) */
+  openKpiModal(key){
+    if(!S.sel) return;
+    const {y,m}=S.sel;
+    const rs=ratioSeries(y);
+    const f=getFin(y); const {plan:P, actual:A}=applyOv(f.plan, f.actual, activeOv(y));
+    const sgaR=src=>Array.from({length:12},(_,i)=>ratio(src.labor_sga[i], src.labor_cost[i]));
+    const perfAct=Array.from({length:12},(_,i)=>{
+      const doc=S.months[mkey(y,i+1)]; if(!doc) return null;
+      const tb=teamTable(doc,"전체","기본순서");
+      return tb.division["수행"]? tb.division["수행"].pct : null; });
+    const DEF={
+      perf:{t:"수행 WORKLOAD (MH 기준)", u:"%", p:rs.plan, a:perfAct,
+        note:"계획 = 해당 월 공사원가율(인건비) 계획"},
+      costRatio:{t:"공사원가율(인건비)", u:"%", p:rs.plan, a:rs.actual},
+      sgaRatio:{t:"판관비율(인건비)", u:"%", p:sgaR(P), a:sgaR(A)},
+      admRatio:{t:"관리비(경비) — 관리비율 기초", u:"백만원", p:P.admin_expense, a:A.admin_expense},
+      labor_cost:{t:"인건비(공사원가)", u:"백만원", p:P.labor_cost, a:A.labor_cost},
+      labor_sga:{t:"인건비(판관비)", u:"백만원", p:P.labor_sga, a:A.labor_sga},
+      admin_expense:{t:"관리비(경비)", u:"백만원", p:P.admin_expense, a:A.admin_expense},
+    };
+    const d=DEF[key]; if(!d) return;
+    const isPct=d.u==="%";
+    const pv=d.p.slice();
+    const av=d.a.map((v,i)=> (i+1)<=m ? v : null);   // 실적은 조회월까지만
+    const fmt1=v=> isPct? v.toFixed(1)+"%" : nf1(v);
+    const ptL=[];
+    for(let i=0;i<12;i++){
+      const p0=pv[i], a0=av[i];
+      const hi=(p0!=null&&a0!=null&&a0>p0);
+      if(p0!=null) ptL.push({i, v:p0, pos:hi?"below":"above", color:"var(--v-red)", text:fmt1(p0)});
+      if(a0!=null) ptL.push({i, v:a0, pos:hi?"above":"below", color:CAT_COLORS["수행"], text:fmt1(a0)});
+    }
+    const chart=svgLine({series:[
+        {name:"계획", color:"var(--v-red)", dash:true, markers:false, faint:true, width:2.6, values:pv},
+        {name:"실적", color:CAT_COLORS["수행"], width:3, values:av}],
+      labels:Array.from({length:12},(_,i)=>(i+1)+"월"), ySuffix:isPct?"%":"", w:940, h:320,
+      hl:m, pointLabels:ptL, labelSize:12,
+      fmt: isPct? null : (v=>nf1(v)+"백만원"),
+      extra:i=>{ const p0=pv[i], a0=av[i];
+        return (p0!=null&&a0!=null)? `계획대비 ${isPct? pp1(a0-p0) : sgn1(a0-p0)+"백만원"}` : ""; }});
+    const md=$("#modal"); md.classList.add("wide");
+    $("#modal-title").textContent=`${d.t} · ${y}년 월별 계획 / 실적`;
+    $("#modal-body").innerHTML=
+      `<div class="legend center sp lg2"><span class="it"><span class="sw" style="background:var(--v-red)"></span>계획</span>
+        <span class="it"><span class="sw" style="background:${CAT_COLORS["수행"]}"></span>실적</span></div>`
+      + chart
+      + `<div class="fin-note">실적은 조회월(${m}월)까지 표시 · 단위 ${d.u}${d.note? " · "+d.note:""}</div>`;
+    bindCharts($("#modal-body"));
+    md.hidden=false;
+  },
+  /* '그 외 N건' 목록에서 프로젝트 클릭 → 팀별 투입률로 이동 */
+  modalPick(kind, name){
+    if(kind!=="proj") return;
+    App.closeModal();
+    S.projSel=name; S.wlDetail=null;
+    renderAll();
+    setTimeout(()=>{ const el=document.getElementById("proj-detail");
+      if(el) el.scrollIntoView({behavior:"smooth", block:"center"}); }, 60);
+  },
   /* 트렌드 점 클릭 → 해당 월(분기)의 활동구분별 실적 팝업 (MH·%) */
   openTrendActModal(a, months){
     if(!S.sel || !a) return;
@@ -2081,6 +2147,7 @@ window.App={
   trendActCat(c){ if(S.trendAct){ S.trendAct.cat=c; App._renderTrendActModal(); } },
   _renderTrendActModal(){
     const d=S.trendAct; if(!d) return;
+    if(d.sel) return App._renderTrendActTeams(d);
     /* 활동구분 × 업무구분 합산 (FE Toggle 반영), 분모 = 선택 주체 전체 MH */
     const agg={}; let denom=0; const catSet=new Set();
     for(const key of d.keys){
@@ -2120,18 +2187,58 @@ window.App={
         <tr><th>활동구분</th><th>업무구분</th><th>MH</th><th>비중</th><th style="width:30%"></th></tr></thead><tbody>`;
       for(const x of list){
         const pct=x.mh/denom*100;
-        body+=`<tr><td>${esc(x.act)}</td>
+        body+=`<tr style="cursor:pointer" title="클릭하면 팀별 투입률이 표시됩니다"
+          onclick="App.trendActPick('${esc(x.cat)}','${esc(x.act)}')"><td>${esc(x.act)}</td>
           <td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${CAT_COLORS[x.cat]||"#888"};margin-right:6px;vertical-align:-1px"></span>${esc(x.cat)}</td>
           <td>${nf0(x.mh)}</td><td>${pct.toFixed(1)}%</td>
           <td><div style="height:11px;border-radius:3px;background:${CAT_COLORS[x.cat]||"var(--accent)"};width:${Math.max(1,pct/maxPct*100)}%"></div></td></tr>`;
       }
       body+=`<tr style="font-weight:700"><td>합계${d.cat==="전체"?"":" ("+esc(d.cat)+")"}</td><td></td><td>${nf0(sumMH)}</td><td>${(sumMH/denom*100).toFixed(1)}%</td><td></td></tr>`;
       body+=`</tbody></table></div>
-        <div class="fin-note">비중 = 활동구분 MH ÷ ${d.entity===TOTAL_LABEL?"본부":esc(d.entity)} 전체 MH ${nf0(denom)}${S.feInclude?"":" · FE 제외"} · 상단에서 업무구분 필터</div>`;
+        <div class="fin-note">비중 = 활동구분 MH ÷ ${d.entity===TOTAL_LABEL?"본부":esc(d.entity)} 전체 MH ${nf0(denom)}${S.feInclude?"":" · FE 제외"} · 상단에서 업무구분 필터 · 행 클릭 시 팀별 투입률</div>`;
     }
     const md=$("#modal"); md.classList.add("wide");
     $("#modal-title").textContent=`${d.entity} · ${d.lbl} 활동구분별 실적`;
     $("#modal-body").innerHTML=chips+body;
+    md.hidden=false;
+  },
+  trendActPick(cat, act){ if(S.trendAct){ S.trendAct.sel={cat, act}; App._renderTrendActModal(); } },
+  trendActBack(){ if(S.trendAct){ S.trendAct.sel=null; App._renderTrendActModal(); } },
+  /* 활동구분 행 클릭 → 해당 시점 각 팀의 투입률 (수행 Project Workload율과 동일 기준) */
+  _renderTrendActTeams(d){
+    const {cat, act}=d.sel;
+    const tAgg={}, tDen={};
+    for(const key of d.keys){
+      const doc=S.months[key]; if(!doc) continue;
+      const tt0=teamTable(doc,"전체","기본순서");
+      tt0.teams.forEach(t=>{ tDen[t.name]=(tDen[t.name]||0)+t.total; });
+      for(const t of (doc.teams||[])){
+        const v0=((t.detail||{})[cat]||{})[act]||0;
+        const f0=((t.detailFE||{})[cat]||{})[act]||0;
+        const adj=v0-(!S.feInclude? f0:0);
+        if(adj>0.001) tAgg[t.name]=(tAgg[t.name]||0)+adj;
+      }
+    }
+    const teams=Object.keys(tDen).filter(t=>!ANALYSIS_EXCLUDE.includes(t))
+      .sort((a,b)=>teamRank(a)-teamRank(b));
+    const rows=teams.map((t,i)=>({name:t, mh:tAgg[t]||0,
+      pct: tDen[t]? (tAgg[t]||0)/tDen[t]*100 : null, color:teamColor(t,i)}));
+    const maxP=Math.max(...rows.map(r=>r.pct||0), 0.001);
+    let body=`<div class="chips" style="margin:2px 0 12px">
+      <button class="chip" onclick="App.trendActBack()">← 활동구분 목록</button>
+      <span class="chip on"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${CAT_COLORS[cat]||"#888"};margin-right:5px;vertical-align:-1px"></span>${esc(cat)}</span></div>`;
+    body+=`<div class="tbl-scroll"><table class="data num"><thead>
+      <tr><th>팀</th><th>투입 MH</th><th>팀 투입률</th><th style="width:34%"></th></tr></thead><tbody>`;
+    let sMH=0, sDen=0;
+    for(const r of rows){ sMH+=r.mh; sDen+=tDen[r.name]||0;
+      body+=`<tr><td>${esc(r.name)}</td><td>${nf0(r.mh)}</td><td>${r.pct==null?"-":r.pct.toFixed(1)+"%"}</td>
+        <td><div style="height:11px;border-radius:3px;background:${r.color};width:${r.pct? Math.max(1,r.pct/maxP*100):0}%"></div></td></tr>`; }
+    body+=`<tr style="font-weight:700"><td>전체</td><td>${nf0(sMH)}</td><td>${sDen? (sMH/sDen*100).toFixed(1)+"%":"-"}</td><td></td></tr>`;
+    body+=`</tbody></table></div>
+      <div class="fin-note">팀 투입률 = 해당 활동 MH ÷ 각 팀 전체 MH · ${esc(d.lbl)}${S.feInclude?"":" · FE 제외"} · ${ANALYSIS_EXCLUDE.join(", ")} 제외</div>`;
+    const md=$("#modal"); md.classList.add("wide");
+    $("#modal-title").textContent=`${act} · ${d.lbl} 팀별 투입률`;
+    $("#modal-body").innerHTML=body;
     md.hidden=false;
   },
   /* 누적 집계 행 클릭 → 월별 투입 내역 팝업 (전체/팀 전환, 팀 색상 적용) */

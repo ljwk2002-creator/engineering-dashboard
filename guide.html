@@ -327,6 +327,7 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
       <ol>
         <li>기본은 <b>전체</b> 기준입니다. 조회월이 속한 년도 동안 수행율·지원율·견적율이 어떻게 움직였는지 먼저 봅니다. [조회 년도]에서 과거 년도를 체크하면 그 앞에 분기 평균으로 이어 그려집니다.</li>
         <li>그래프에서 <b>월(또는 분기) 지점을 클릭</b>하면 해당 시점의 <b>활동구분별 실적(MH·비중)</b>이 팝업으로 표시됩니다. 분기는 등록 월 합산이며, 팝업 상단에서 업무구분(수행/지원/일반/견적)별로 필터할 수 있습니다.</li>
+        <li>팝업의 <b>활동구분 행을 다시 클릭</b>하면 그 활동에 대한 <b>각 팀의 투입률(투입 MH ÷ 팀 전체 MH)</b>이 표시됩니다 — 수행 Project Workload율의 팀별 투입률과 같은 기준입니다. [← 활동구분 목록]으로 되돌아갈 수 있습니다.</li>
         <li>상단 <b>조회 대상을 개별 팀으로 바꿉니다.</b> 전체에서 보이던 변화가 특정 팀에서 온 것인지, 여러 팀에 걸친 것인지 구분됩니다.</li>
         <li>팀을 하나씩 바꿔가며 같은 구간을 비교합니다. 한 팀만 반대로 움직인다면 그 팀이 원인일 가능성이 큽니다.</li>
         <li>원인을 찾았으면 팀별 WORKLOAD 화면으로 돌아가 해당 팀 막대를 클릭해 활동구분까지 확인합니다.</li>
@@ -412,6 +413,7 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
         <li>상단에서 <b>수행+지원 / 수행 / 지원</b>으로 조회 방식을 바꿉니다. ‘수행’만 볼 때와 순위가 달라지는 Project는 지원 MH가 많이 들어간 Project입니다.</li>
         <li>궁금한 <b>Project의 막대를 선택</b>하면 그 Project에 각 팀이 얼마나 투입되고 있는지 열립니다.</li>
         <li>이때 팀별 투입률은 <b>본부 전체가 아니라 해당 팀의 전체 MH 기준</b>입니다. 예시의 34.2%는 A팀 전체 MH의 3분의 1이 이 Project에 들어갔다는 뜻입니다.</li>
+        <li><b>그 외 N건</b> 막대를 클릭하면 나머지 Project 전체 목록이 열리고, 목록의 <b>Project를 클릭</b>하면 그 Project의 팀별 투입률로 바로 이동합니다.</li>
       </ol>
       <p class="tip"><b>이럴 때 씁니다.</b> 특정 팀의 투입률이 유독 높으면 그 Project가 팀 Capacity를 얼마나 점유하는지 판단하고, 다른 업무 지연 여부를 함께 확인합니다.</p>
     </div>
@@ -486,7 +488,7 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
   </div>
   <div class="flow">
     <div class="step"><span class="s">STEP 1</span><h4>조회월 확인</h4><p>조회월·포함한 과거 년도·데이터 갱신일·FE 포함 여부</p></div>
-    <div class="step"><span class="s">STEP 2</span><h4>KPI 확인</h4><p>상단 지표 4종을 먼저 읽기</p></div>
+    <div class="step"><span class="s">STEP 2</span><h4>KPI 확인</h4><p>상단 지표 읽기 · 카드 클릭 시 해당년도 1~12월 계획/실적 그래프 팝업</p></div>
     <div class="step"><span class="s">STEP 3</span><h4>재무 차이</h4><p>인건비·관리비 계획대비 증감</p></div>
     <div class="step"><span class="s">STEP 4</span><h4>팀별 WORKLOAD</h4><p>이상한 팀 막대를 클릭해 Top 5 확인</p></div>
     <div class="step"><span class="s">STEP 5</span><h4>Trend</h4><p>전체 → 개별 팀으로 바꿔 지속성 확인</p></div>
