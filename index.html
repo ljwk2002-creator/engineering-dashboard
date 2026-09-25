@@ -2222,20 +2222,26 @@ window.App={
     const teams=Object.keys(tDen).filter(t=>!ANALYSIS_EXCLUDE.includes(t))
       .sort((a,b)=>teamRank(a)-teamRank(b));
     const rows=teams.map((t,i)=>({name:t, mh:tAgg[t]||0,
-      pct: tDen[t]? (tAgg[t]||0)/tDen[t]*100 : null, color:teamColor(t,i)}));
-    const maxP=Math.max(...rows.map(r=>r.pct||0), 0.001);
+      pct: tDen[t]? (tAgg[t]||0)/tDen[t]*100 : 0, color:teamColor(t,i)}));
+    const maxP=Math.max(...rows.map(r=>r.pct), 1);
     let body=`<div class="chips" style="margin:2px 0 12px">
       <button class="chip" onclick="App.trendActBack()">← 활동구분 목록</button>
       <span class="chip on"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${CAT_COLORS[cat]||"#888"};margin-right:5px;vertical-align:-1px"></span>${esc(cat)}</span></div>`;
-    body+=`<div class="tbl-scroll"><table class="data num"><thead>
-      <tr><th>팀</th><th>투입 MH</th><th>팀 투입률</th><th style="width:34%"></th></tr></thead><tbody>`;
-    let sMH=0, sDen=0;
-    for(const r of rows){ sMH+=r.mh; sDen+=tDen[r.name]||0;
-      body+=`<tr><td>${esc(r.name)}</td><td>${nf0(r.mh)}</td><td>${r.pct==null?"-":r.pct.toFixed(1)+"%"}</td>
-        <td><div style="height:11px;border-radius:3px;background:${r.color};width:${r.pct? Math.max(1,r.pct/maxP*100):0}%"></div></td></tr>`; }
-    body+=`<tr style="font-weight:700"><td>전체</td><td>${nf0(sMH)}</td><td>${sDen? (sMH/sDen*100).toFixed(1)+"%":"-"}</td><td></td></tr>`;
-    body+=`</tbody></table></div>
-      <div class="fin-note">팀 투입률 = 해당 활동 MH ÷ 각 팀 전체 MH · ${esc(d.lbl)}${S.feInclude?"":" · FE 제외"} · ${ANALYSIS_EXCLUDE.join(", ")} 제외</div>`;
+    /* 세로막대 — 수행 Project Workload율의 팀별 투입률과 동일 형식 */
+    let sMH=0, sDen=0, bplot="", bnames="";
+    for(const r of rows){
+      sMH+=r.mh; sDen+=tDen[r.name]||0;
+      const hp=r.pct/maxP*82;
+      bplot+=`<div class="wlv-stack" title="${esc(r.name)} · ${nf0(r.mh)} MH (팀 전체 ${nf0(tDen[r.name]||0)} MH 대비)">
+        <div class="wlv-sum num">${r.pct.toFixed(1)}%</div>
+        <div class="wlv-seg" style="height:${hp}%;width:50%;margin:0 auto;background:${r.color}"></div></div>`;
+      bnames+=`<div class="wlv-name" title="${esc(r.name)}">${esc(r.name)}</div>`;
+    }
+    const bg=`grid-template-columns:repeat(${rows.length},1fr)`;
+    body+=`<div class="wlv-main">
+      <div class="wlv-plot" style="${bg};gap:0;height:170px;background:none;border-bottom:1px solid var(--line)">${bplot}</div>
+      <div class="wlv-names" style="${bg};gap:0">${bnames}</div></div>`;
+    body+=`<div class="fin-note">팀 투입률 = 해당 활동 MH ÷ 각 팀 전체 MH · 전체 ${nf0(sMH)} MH${sDen? " ("+(sMH/sDen*100).toFixed(1)+"%)":""} · ${esc(d.lbl)}${S.feInclude?"":" · FE 제외"} · ${ANALYSIS_EXCLUDE.join(", ")} 제외</div>`;
     const md=$("#modal"); md.classList.add("wide");
     $("#modal-title").textContent=`${act} · ${d.lbl} 팀별 투입률`;
     $("#modal-body").innerHTML=body;
