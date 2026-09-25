@@ -401,7 +401,7 @@ const S = {
   tab:"dash", sel:null, inclYears:null, months:{}, financial:{}, overrides:[], files:{},
   storeMode:null, ready:false, pending:null,
   trendSel:"전체",
-  sort:"기본순서", projMode:"수행+지원", wlDetail:null, cumSel:null, cumExpand:false, trendAct:null,
+  sort:"기본순서", projMode:"수행+지원", wlDetail:null, cumSel:null, cumExpand:false, trendAct:null, trendActSel:null,
   histA:null, histB:null, histFrom:null, histTo:null,
   exec: location.hash==="#exec" || lsGet("emd-exec")!==false,   // 기본: Executive View ON
   adminName: lsGet("emd-admin-name") || "admin",
@@ -1549,6 +1549,49 @@ function renderDash(v){
   }else{
     html+=`<div class="muted small">월별 Trend는 2개월 이상 데이터가 축적되면 표시됩니다.</div>`;
   }
+  /* 활동구분 팀별 투입률 — Project 팀별 투입률과 동일 형식으로 트렌드 아래 인라인 표시 */
+  if(S.trendActSel && !S.trendActSel.keys.every(k=>S.months[k])) S.trendActSel=null;
+  if(S.trendActSel){
+    const dsel=S.trendActSel, {cat, act}=dsel;
+    const tAgg={}, tDen={};
+    for(const key of dsel.keys){
+      const md0=S.months[key];
+      const tt0=teamTable(md0,"전체","기본순서");
+      tt0.teams.forEach(t=>{ tDen[t.name]=(tDen[t.name]||0)+t.total; });
+      for(const t of (md0.teams||[])){
+        const v0=((t.detail||{})[cat]||{})[act]||0;
+        const f0=((t.detailFE||{})[cat]||{})[act]||0;
+        const adj=v0-(!S.feInclude? f0:0);
+        if(adj>0.001) tAgg[t.name]=(tAgg[t.name]||0)+adj;
+      }
+    }
+    const tnames=Object.keys(tDen).filter(t=>!ANALYSIS_EXCLUDE.includes(t))
+      .sort((a,b)=>teamRank(a)-teamRank(b));
+    const bars=tnames.map((t,i)=>({name:t, mh:tAgg[t]||0, den:tDen[t]||0,
+      pct: tDen[t]? (tAgg[t]||0)/tDen[t]*100 : 0, color:teamColor(t,i)}));
+    const maxB=Math.max(...bars.map(b=>b.pct), 1);
+    let sMH=0, sDen=0, bplot="", bnames="";
+    for(const b of bars){
+      sMH+=b.mh; sDen+=b.den;
+      const hp=b.pct/maxB*82;
+      bplot+=`<div class="wlv-stack" data-tip="<b>${esc(b.name)}</b><br><br>${esc(act)}<br>${b.pct.toFixed(1)}% · ${nf0(b.mh)} MH<br>(팀 전체 ${nf0(b.den)} MH 대비)">
+        <div class="wlv-sum num">${b.pct.toFixed(1)}%</div>
+        <div class="wlv-seg" style="height:${hp}%;width:50%;margin:0 auto;background:${b.color}"></div></div>`;
+      bnames+=`<div class="wlv-name" title="${esc(b.name)}">${esc(b.name)}</div>`;
+    }
+    const bg2=`grid-template-columns:repeat(${bars.length},1fr)`;
+    html+=`<div class="wl-detail" id="trend-act-detail" style="margin-left:0;margin-top:12px">
+      <div class="wl-detail-h"><span><b>${esc(act)}</b>
+        <span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${CAT_COLORS[cat]||"#888"};margin:0 3px 0 6px;vertical-align:-1px"></span>${esc(cat)}
+        · ${esc(dsel.lbl)} 팀별 투입률
+        <span class="muted small">(각 팀 전체 MH 100% 기준 · ${ANALYSIS_EXCLUDE.join(", ")} 제외${S.feInclude?"":" · FE 제외"})</span></span>
+      <button class="btn sm" onclick="App.trendActClose()">닫기 ✕</button></div>
+      <div class="wlv-main">
+        <div class="wlv-plot" style="${bg2};gap:0;height:170px;background:none;border-bottom:1px solid var(--line)">${bplot}</div>
+        <div class="wlv-names" style="${bg2};gap:0">${bnames}</div>
+      </div>
+      <div class="fin-note">팀 투입률 = 해당 활동 MH ÷ 각 팀 전체 MH · 전체 ${nf0(sMH)} MH${sDen? " ("+(sMH/sDen*100).toFixed(1)+"%)":""}</div></div>`;
+  }
   html+=`</section>`;
 
   /* Trend 아래: 수행 프로젝트별 LOAD율 */
@@ -1978,7 +2021,7 @@ window.App={
     App._setSel(yy, mm); },
   selMonth(mm){ if(S.sel) App._setSel(S.sel.y, mm); },
   _setSel(yy,mm){ S.sel={y:yy, m:mm};
-    S.wlDetail=null; S.projSel=null; S.trendSel=TOTAL_LABEL;
+    S.wlDetail=null; S.projSel=null; S.trendSel=TOTAL_LABEL; S.trendActSel=null;
     S.cumExpand=false; renderAll(); },
   /* 조회 년도 팝업: 체크한 과거 년도를 함께 조회 (그래프는 분기 평균) */
   openYearModal(){
@@ -2000,7 +2043,7 @@ window.App={
   toggleYear(yy,on){
     const s=new Set(S.inclYears||[]); on? s.add(yy) : s.delete(yy);
     S.inclYears=[...s].sort((a,b)=>a-b); lsSet("emd-inclyears", S.inclYears);
-    S.trendSel=TOTAL_LABEL; S.cumExpand=false; S.projSel=null; S.wlDetail=null;
+    S.trendSel=TOTAL_LABEL; S.cumExpand=false; S.projSel=null; S.wlDetail=null; S.trendActSel=null;
     renderAll();
   },
   cumToggle(){ S.cumExpand=!S.cumExpand; renderAll(); },
@@ -2147,7 +2190,6 @@ window.App={
   trendActCat(c){ if(S.trendAct){ S.trendAct.cat=c; App._renderTrendActModal(); } },
   _renderTrendActModal(){
     const d=S.trendAct; if(!d) return;
-    if(d.sel) return App._renderTrendActTeams(d);
     /* 활동구분 × 업무구분 합산 (FE Toggle 반영), 분모 = 선택 주체 전체 MH */
     const agg={}; let denom=0; const catSet=new Set();
     for(const key of d.keys){
@@ -2202,51 +2244,16 @@ window.App={
     $("#modal-body").innerHTML=chips+body;
     md.hidden=false;
   },
-  trendActPick(cat, act){ if(S.trendAct){ S.trendAct.sel={cat, act}; App._renderTrendActModal(); } },
-  trendActBack(){ if(S.trendAct){ S.trendAct.sel=null; App._renderTrendActModal(); } },
-  /* 활동구분 행 클릭 → 해당 시점 각 팀의 투입률 (수행 Project Workload율과 동일 기준) */
-  _renderTrendActTeams(d){
-    const {cat, act}=d.sel;
-    const tAgg={}, tDen={};
-    for(const key of d.keys){
-      const doc=S.months[key]; if(!doc) continue;
-      const tt0=teamTable(doc,"전체","기본순서");
-      tt0.teams.forEach(t=>{ tDen[t.name]=(tDen[t.name]||0)+t.total; });
-      for(const t of (doc.teams||[])){
-        const v0=((t.detail||{})[cat]||{})[act]||0;
-        const f0=((t.detailFE||{})[cat]||{})[act]||0;
-        const adj=v0-(!S.feInclude? f0:0);
-        if(adj>0.001) tAgg[t.name]=(tAgg[t.name]||0)+adj;
-      }
-    }
-    const teams=Object.keys(tDen).filter(t=>!ANALYSIS_EXCLUDE.includes(t))
-      .sort((a,b)=>teamRank(a)-teamRank(b));
-    const rows=teams.map((t,i)=>({name:t, mh:tAgg[t]||0,
-      pct: tDen[t]? (tAgg[t]||0)/tDen[t]*100 : 0, color:teamColor(t,i)}));
-    const maxP=Math.max(...rows.map(r=>r.pct), 1);
-    let body=`<div class="chips" style="margin:2px 0 12px">
-      <button class="chip" onclick="App.trendActBack()">← 활동구분 목록</button>
-      <span class="chip on"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${CAT_COLORS[cat]||"#888"};margin-right:5px;vertical-align:-1px"></span>${esc(cat)}</span></div>`;
-    /* 세로막대 — 수행 Project Workload율의 팀별 투입률과 동일 형식 */
-    let sMH=0, sDen=0, bplot="", bnames="";
-    for(const r of rows){
-      sMH+=r.mh; sDen+=tDen[r.name]||0;
-      const hp=r.pct/maxP*82;
-      bplot+=`<div class="wlv-stack" title="${esc(r.name)} · ${nf0(r.mh)} MH (팀 전체 ${nf0(tDen[r.name]||0)} MH 대비)">
-        <div class="wlv-sum num">${r.pct.toFixed(1)}%</div>
-        <div class="wlv-seg" style="height:${hp}%;width:50%;margin:0 auto;background:${r.color}"></div></div>`;
-      bnames+=`<div class="wlv-name" title="${esc(r.name)}">${esc(r.name)}</div>`;
-    }
-    const bg=`grid-template-columns:repeat(${rows.length},1fr)`;
-    body+=`<div class="wlv-main">
-      <div class="wlv-plot" style="${bg};gap:0;height:170px;background:none;border-bottom:1px solid var(--line)">${bplot}</div>
-      <div class="wlv-names" style="${bg};gap:0">${bnames}</div></div>`;
-    body+=`<div class="fin-note">팀 투입률 = 해당 활동 MH ÷ 각 팀 전체 MH · 전체 ${nf0(sMH)} MH${sDen? " ("+(sMH/sDen*100).toFixed(1)+"%)":""} · ${esc(d.lbl)}${S.feInclude?"":" · FE 제외"} · ${ANALYSIS_EXCLUDE.join(", ")} 제외</div>`;
-    const md=$("#modal"); md.classList.add("wide");
-    $("#modal-title").textContent=`${act} · ${d.lbl} 팀별 투입률`;
-    $("#modal-body").innerHTML=body;
-    md.hidden=false;
+  /* 활동구분 행 클릭 → 팝업을 닫고 트렌드 섹션 아래에 팀별 투입률(세로막대) 인라인 표시 */
+  trendActPick(cat, act){
+    const d=S.trendAct; if(!d) return;
+    S.trendActSel={cat, act, lbl:d.lbl, keys:d.keys};
+    App.closeModal();
+    renderAll();
+    setTimeout(()=>{ const el=document.getElementById("trend-act-detail");
+      if(el) el.scrollIntoView({behavior:"smooth", block:"center"}); }, 60);
   },
+  trendActClose(){ S.trendActSel=null; renderAll(); },
   /* 누적 집계 행 클릭 → 월별 투입 내역 팝업 (전체/팀 전환, 팀 색상 적용) */
   openCumModal(name){ S.cumSel={proj:name, entity:TOTAL_LABEL}; App._renderCumModal(); },
   cumEntity(e){ if(!S.cumSel) return; S.cumSel.entity=e; App._renderCumModal(); },
