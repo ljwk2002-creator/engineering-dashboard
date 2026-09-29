@@ -1554,47 +1554,37 @@ function renderDash(v){
   /* Trend 아래: 수행 프로젝트별 LOAD율 */
   html+=pjSection;
 
-  /* 수행 프로젝트별 누적 집계 (업무구분 '수행' · 조회기간 내 등록된 월 합산) */
+  /* 수행 프로젝트별 누적 집계 (업무구분 '수행' · 등록된 전체 기간 합산, 조회기간과 무관) */
   {
-    const cumMonths=regMonths;
+    const cumMonths=periods();
     const agg={};
     for(const p0 of cumMonths){
       const md=S.months[p0.key];
       for(const pr of (md.projects||[])){
         const v=Math.max(0,((pr.mh&&pr.mh.수행)||0)
           - (!S.feInclude?((pr.fe&&pr.fe.수행)||0):0));
-        if(v>0) agg[pr.name]=(agg[pr.name]||0)+v;
+        if(v>0){ const b=(agg[pr.name]??={v:0, first:p0}); b.v+=v; }
       }
     }
-    const list=Object.entries(agg).map(([n,v])=>({n,v})).sort((a,b)=>b.v-a.v);
+    const list=Object.entries(agg).map(([n,b])=>({n, v:b.v, first:b.first})).sort((a,b)=>b.v-a.v);
     const totalCum=list.reduce((s,x)=>s+x.v,0);
-    const c0=cumMonths.length?cumMonths[0]:{y,m};
-    /* 기대 월수 = c0~조회월 중 조회기간에 속한 년도의 달만 (체크 안 한 년도 제외) */
-    const spanYrs=new Set([...incYrs, y]);
-    let expected=0;
-    { let yy=c0.y, mm=c0.m;
-      while(yy<y || (yy===y && mm<=m)){
-        if(spanYrs.has(yy)) expected++;
-        if(++mm>12){ mm=1; yy++; } } }
-    const gapNote=cumMonths.length<expected
-      ? ` · 미등록 월 제외, 등록된 ${cumMonths.length}개월 합산` : "";
-    const cumLbl= c0.y===y ? `${y}년 ${c0.m}월 ~ ${m}월`
-      : `${c0.y}년 ${c0.m}월 ~ ${y}년 ${m}월`;
-    const cumCol= c0.y===y ? `${c0.m}~${m}월`
-      : `'${String(c0.y).slice(2)}.${c0.m}~'${String(y).slice(2)}.${m}`;
+    const c0=cumMonths[0]||{y,m};
+    const last=cumMonths[cumMonths.length-1]||{y,m};
+    const ym2=p=>`'${String(p.y).slice(2)}.${p.m}`;
+    const cumLbl=`${c0.y}년 ${c0.m}월 ~ ${last.y}년 ${last.m}월 · 등록된 전체 기간`;
     html+=`<div class="section-gap"></div><div class="grid" style="grid-template-columns:1fr 1fr">
       <section class="panel"><div class="sec-h">
       <h2>수행 프로젝트별 누적 집계</h2>
-      <span class="sub"><b>누적 기간 : ${cumLbl}</b>${gapNote} · 업무구분 '수행' MH${S.feInclude?"":" · FE 제외"}</span></div>`;
+      <span class="sub"><b>누적 기간 : ${cumLbl}</b> · 업무구분 '수행' MH${S.feInclude?"":" · FE 제외"}</span></div>`;
     if(!list.length){
       html+=`<div class="muted small">누적할 수행 데이터가 없습니다.</div>`;
     }else{
-      const cumRow=(x,cls)=>`<tr${cls?` class="${cls}"`:""} data-cumproj="${esc(x.n)}" style="cursor:pointer" title="클릭하면 월별 투입 내역이 표시됩니다"><td>${esc(x.n)}</td><td>${nf0(x.v)}</td><td>${(x.v/totalCum*100).toFixed(1)}%</td></tr>`;
+      const cumRow=(x,cls)=>`<tr${cls?` class="${cls}"`:""} data-cumproj="${esc(x.n)}" style="cursor:pointer" title="클릭하면 월별 투입 내역이 표시됩니다"><td>${esc(x.n)}</td><td>${nf0(x.v)}</td><td>${ym2(x.first)} ~ ${ym2(last)}</td></tr>`;
       const TOPN=10;
       let shown=list, rest=[];
       if(list.length>TOPN+1){ rest=list.slice(TOPN); shown=list.slice(0,TOPN); }
       html+=`<div class="tbl-scroll"><table class="data num">
-        <thead><tr><th>프로젝트(활동 구분)</th><th>누적 수행 MH (${cumCol})</th><th>구성비</th></tr></thead><tbody>`;
+        <thead><tr><th>프로젝트(활동 구분)</th><th>누적 수행 MH</th><th>기간 (MH 발생 ~ 현재)</th></tr></thead><tbody>`;
       /* 상위 5개: 빨간 테두리 하이라이트 (클릭 팝업 유지) */
       const t5Last=Math.min(5, shown.length)-1;
       shown.forEach((x,i)=>{
@@ -1606,14 +1596,14 @@ function renderDash(v){
           const restSum=rest.reduce((s,x)=>s+x.v,0);
           html+=`<tr style="cursor:pointer" onclick="App.cumToggle()" title="클릭하면 나머지 프로젝트가 펼쳐집니다">
             <td style="font-style:italic;color:var(--ink3)">그 외 ${rest.length}건 — 클릭하여 펼치기 ▾</td>
-            <td>${nf0(restSum)}</td><td>${(restSum/totalCum*100).toFixed(1)}%</td></tr>`;
+            <td>${nf0(restSum)}</td><td></td></tr>`;
         }else{
           for(const x of rest) html+=cumRow(x);
           html+=`<tr style="cursor:pointer" onclick="App.cumToggle()">
             <td colspan="3" style="text-align:center;font-style:italic;color:var(--ink3)">▴ 접기</td></tr>`;
         }
       }
-      html+=`<tr style="font-weight:700"><td>합계</td><td>${nf0(totalCum)}</td><td>100.0%</td></tr>`;
+      html+=`<tr style="font-weight:700"><td>합계</td><td>${nf0(totalCum)}</td><td></td></tr>`;
       html+=`</tbody></table></div>
         <div class="fin-note">Top ${TOPN} 표시 · <span style="color:var(--v-red)">빨간 테두리 = 누적 상위 5</span> · 행 클릭 시 월별 투입 MH·LOAD율 팝업이 표시됩니다.</div>`;
     }
@@ -2252,12 +2242,11 @@ window.App={
   _renderCumModal(){
     if(!S.cumSel || !S.sel) return;
     const {proj, entity}=S.cumSel; const {y,m}=S.sel;
-    const inc=inclYears();
-    const cumMonths=periods().filter(p=> inc.includes(p.y) || (p.y===y && p.m<=m));
+    const cumMonths=periods();   // 등록된 전체 기간
     const teams=[...new Set(cumMonths.flatMap(p=>(S.months[p.key].teams||[]).map(t=>t.name)))]
       .filter(t=>!ANALYSIS_EXCLUDE.includes(t)).sort((a,b)=>teamRank(a)-teamRank(b));
     const entColor= entity===TOTAL_LABEL ? "var(--accent)" : (TEAM_COLORS[entity]||"var(--accent)");
-    const rows=[]; let sumMH=0, sumDen=0;
+    const rowsAll=[];
     for(const p0 of cumMonths){
       const md=S.months[p0.key];
       const tt0=teamTable(md,"전체","기본순서");
@@ -2271,9 +2260,13 @@ window.App={
              -(!S.feInclude?((pr.teamsFE&&pr.teamsFE[entity]&&pr.teamsFE[entity].수행)||0):0)) : 0;
         const tr=tt0.teams.find(t=>t.name===entity); den= tr? tr.total:0;
       }
-      rows.push({y:p0.y, m:p0.m, v, load: den? v/den*100 : null});
-      sumMH+=v; sumDen+=den;
+      rowsAll.push({y:p0.y, m:p0.m, v, den, load: den? v/den*100 : null});
     }
+    /* MH 발생 시점부터 현재까지 표기 */
+    const i0=rowsAll.findIndex(r=>r.v>0);
+    const rows=i0>=0? rowsAll.slice(i0) : rowsAll;
+    let sumMH=0, sumDen=0;
+    rows.forEach(r=>{ sumMH+=r.v; sumDen+=r.den; });
     const cumLoad= sumDen? sumMH/sumDen*100 : null;
     const maxLoad=Math.max(...rows.map(r=>r.load||0), 0.001);
     const chips=`<div class="legend center sp lg2" style="margin:2px 0 12px;gap:14px">
@@ -2287,8 +2280,8 @@ window.App={
       table+=`<tr><td>${r.y}년 ${r.m}월</td><td>${nf0(r.v)}</td><td>${r.load==null?"-":r.load.toFixed(1)+"%"}</td>
         <td><div style="height:12px;border-radius:3px;background:${entColor};width:${r.load? Math.max(1,r.load/maxLoad*100):0}%"></div></td></tr>`;
     const r0=rows.length?rows[0]:{y,m};
-    const cumSpan= r0.y===y ? `${r0.m}~${m}월`
-      : `'${String(r0.y).slice(2)}.${r0.m}~'${String(y).slice(2)}.${m}`;
+    const rL=rows.length?rows[rows.length-1]:{y,m};
+    const cumSpan=`'${String(r0.y).slice(2)}.${r0.m}~'${String(rL.y).slice(2)}.${rL.m}`;
     table+=`<tr style="font-weight:700"><td>누계 (${cumSpan})</td><td>${nf0(sumMH)}</td><td>${cumLoad==null?"-":cumLoad.toFixed(1)+"%"}</td><td></td></tr>`;
     table+=`</tbody></table></div>
       <div class="fin-note">LOAD율 = ${entity===TOTAL_LABEL?"본부 전체":esc(entity)}의 해당 프로젝트 수행 MH ÷ ${entity===TOTAL_LABEL?"본부":"팀"} 전체 MH${S.feInclude?"":" · FE 제외"}</div>`;

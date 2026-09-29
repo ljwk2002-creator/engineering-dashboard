@@ -217,7 +217,7 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
       <ol>
         <li>상단 <b>조회월</b>에서 년도와 월을 선택합니다. <b>조회는 조회월 기준으로 해당 년도가 원칙</b>입니다 — 그래프 축은 그 해 1월부터 12월까지, 실적은 조회월까지, 계획선은 12월까지 그려집니다.</li>
         <li>과거 자료를 함께 보려면 <b>[📅 조회 년도]</b> 버튼을 누르고 팝업에서 <b>포함할 년도를 체크</b>합니다. 예: 조회월 2026년 8월에서 2025년을 체크하면 2025년부터 2026년 8월까지 조회됩니다. 체크 상태는 브라우저에 저장되어 유지됩니다.</li>
-        <li>과거 년도는 <b>공사원가율(인건비)·월별 Workload 트렌드</b> 그래프에 <b>분기 평균('25.1Q~4Q)</b>으로 압축 표시되고, 조회 년도는 월별 그대로 표시됩니다. 누적 집계와 평균 표는 체크한 년도를 포함한 전체 기간으로 집계됩니다.</li>
+        <li>과거 년도는 <b>공사원가율(인건비)·월별 Workload 트렌드</b> 그래프에 <b>분기 평균('25.1Q~4Q)</b>으로 압축 표시되고, 조회 년도는 월별 그대로 표시됩니다. 평균 표는 체크한 년도를 포함한 기간으로 집계되며, <b>수행 프로젝트별 누적 집계는 항상 등록된 전체 기간 기준</b>입니다.</li>
         <li><b>KPI·팀별 WORKLOAD·Project·인건비/관리비는 조회월 기준</b>입니다. 과거 년도를 체크해도 이 화면들은 조회월 한 달을 보여줍니다.</li>
         <li><b>FE 포함 Toggle</b>로 FE 인력 MH를 넣거나 뺍니다(기본 포함). 분석 전 지금 화면의 <b>조회월·포함 년도·FE 상태를 먼저 확인</b>하십시오 — 이 설정이 달라지면 뒤의 모든 비율이 달라집니다.</li>
       </ol>
@@ -430,22 +430,22 @@ footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12.5px;color:v
     <div class="howto">
       <h3>이렇게 사용합니다</h3>
       <ol>
-        <li><b>조회 년도(체크한 과거 년도 포함)에 등록된 월의 수행 MH</b>가 Project별로 누적되어 표시됩니다(누적 기간은 표 위에 명기). 단월 화면과 달리 투입 규모의 총량을 봅니다.</li>
-        <li>구성비로 상위 Project를 먼저 확인합니다. 단월 비중은 낮아도 누적이 큰 Project가 실제 자원을 많이 쓴 Project입니다.</li>
+        <li><b>등록된 전체 기간의 수행 MH</b>가 Project별로 누적되어 표시됩니다 — 조회월·조회 년도 설정과 무관하게 항상 전체 기간 기준입니다(기간은 표 위에 명기).</li>
+        <li>각 행의 <b>기간 열</b>은 그 Project에서 <b>MH가 처음 발생한 시점부터 현재(최신 등록 월)까지</b>를 보여줍니다. 시작 시점이 이르고 누적이 큰 Project가 실제 자원을 오래·많이 쓴 Project입니다.</li>
         <li><b>Project 행을 선택</b>하면 <b>월별 수행 MH와 LOAD율</b>이 아래에 펼쳐집니다.</li>
         <li>월별 값이 계속 늘고 있는지, 특정 월에 몰렸다가 줄었는지를 보고 그 Project가 지금도 자원을 쓰고 있는지 판단합니다.</li>
       </ol>
       <p class="tip"><b>이렇게 이어서 봅니다.</b> 누적이 큰데 최근 월 LOAD가 급감했다면 종료 단계일 수 있고, 반대로 최근 월이 급증했다면 앞의 Workload율 화면에서 어느 팀이 들어갔는지 확인합니다.</p>
     </div>
     <div class="screen">
-      <div class="bar">수행 프로젝트별 누적 집계<span class="mo">2026년 1월 ~ 8월 누적</span></div>
+      <div class="bar">수행 프로젝트별 누적 집계<span class="mo">등록된 전체 기간 누적</span></div>
       <div class="body">
         <table class="tbl">
-          <tr><th>Project</th><th style="text-align:right">누적 수행 MH</th><th style="text-align:right">구성비</th></tr>
-          <tr class="sel"><td>A Project</td><td class="n">18,420</td><td class="n">21.3%</td></tr>
-          <tr><td>B Project</td><td class="n">12,060</td><td class="n">13.9%</td></tr>
-          <tr><td>C Project</td><td class="n">8,940</td><td class="n">10.3%</td></tr>
-          <tr><td>D Project</td><td class="n">5,310</td><td class="n">6.1%</td></tr>
+          <tr><th>Project</th><th style="text-align:right">누적 수행 MH</th><th style="text-align:right">기간 (MH 발생 ~ 현재)</th></tr>
+          <tr class="sel"><td>A Project</td><td class="n">48,420</td><td class="n">'24.3 ~ '26.9</td></tr>
+          <tr><td>B Project</td><td class="n">22,060</td><td class="n">'25.1 ~ '26.9</td></tr>
+          <tr><td>C Project</td><td class="n">8,940</td><td class="n">'25.11 ~ '26.9</td></tr>
+          <tr><td>D Project</td><td class="n">5,310</td><td class="n">'26.4 ~ '26.9</td></tr>
         </table>
         <div class="popup">
           <div class="cap">A Project 행을 선택한 결과</div>
