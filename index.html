@@ -232,6 +232,15 @@ table.fin td.miss{color:var(--ink3); font-size:11.5px}
 .avg-box .v{font-weight:700; text-align:right; font-size:15px}
 .avg-box .p{grid-column:1/-1; font-size:11px; color:var(--ink3);
   text-align:right; border-bottom:1px dashed var(--line); padding-bottom:3px}
+/* 전월 대비 미니 표 */
+table.mom{border-collapse:separate; border-spacing:0; font-size:12.5px;
+  background:var(--panel2); border:1px solid var(--line); border-radius:10px}
+table.mom th{font-size:11px; color:var(--ink3); font-weight:600;
+  padding:6px 12px 2px; text-align:right; white-space:nowrap}
+table.mom th:first-child{text-align:left}
+table.mom td{padding:2px 12px; text-align:right; white-space:nowrap}
+table.mom td:first-child{text-align:left; font-weight:600; color:var(--ink2)}
+table.mom tr:last-child td{padding-bottom:7px}
 /* 누적 집계 상위 5 하이라이트 (table.data 기본 테두리보다 우선) */
 table.data tr.cum-t5 td{background:rgba(192,0,0,.045)}
 table.data tr.cum-t5 td:first-child{border-left:2px solid var(--v-red)}
@@ -1208,10 +1217,35 @@ function renderDash(v){
 
   if(fs.missing) html+=`<div class="banner">⚠ ${m}월 재무 실적 데이터가 아직 입력되지 않았습니다.</div>`;
 
+  /* 전월 대비 증감 표 (전체 기준 · 수행/지원/견적율 + 총 MH) */
+  let momBox="";
+  if(prev && prev.total>0 && tt.total>0){
+    const pvLbl= pv.y===y? pv.m+"월" : `'${String(pv.y).slice(2)}.${pv.m}`;
+    const dCell=d=>{
+      const col=(d==null||d===0)? "var(--v-neutral)" : (d>0? "var(--v-blue)" : "var(--v-red)");
+      return `<td style="color:${col};font-weight:700">${d==null?"-":pp1(d)}</td>`;
+    };
+    let mrows="";
+    for(const c of ["수행","지원","견적"]){
+      const cv=tt.division[c]? tt.division[c].pct : null;
+      const pvv=prev.division[c]? prev.division[c].pct : null;
+      const d=(cv!=null&&pvv!=null)? cv-pvv : null;
+      mrows+=`<tr><td>${c}</td><td>${pct1(cv)}</td><td>${pct1(pvv)}</td>${dCell(d)}</tr>`;
+    }
+    { const chg=(tt.total-prev.total)/prev.total*100;
+      const col=chg>0? "var(--v-blue)" : (chg<0? "var(--v-red)" : "var(--v-neutral)");
+      mrows+=`<tr><td>총 MH</td><td>${nf0(tt.total)}</td><td>${nf0(prev.total)}</td>
+        <td style="color:${col};font-weight:700">${spct(chg)}</td></tr>`; }
+    momBox=`<table class="mom num" title="전월 대비 증감 (전체 기준, MH)">
+      <thead><tr><th>전월 대비</th><th>${m}월</th><th>${pvLbl}</th><th>차이</th></tr></thead>
+      <tbody>${mrows}</tbody></table>`;
+  }
+
   /* 팀별 WORKLOAD Section을 생성한 뒤 잘라내어 공사원가율 아래에 배치한다 */
   const _wlStart=html.length;
   html+=`<section class="panel"><div class="sec-h">
     <h2>팀별 WORKLOAD 구성 <span class="sub">${y}년 ${m}월 · 팀별 전체 MH 중 업무 유형별 투입 비율(%) · 막대 클릭 시 내역 표시</span></h2>
+    ${momBox}
     <select class="hide-print" aria-label="정렬" onchange="App.setSort(this.value)">
       ${["기본순서","수행율 높은순","일반율 높은순","총 MH 높은순"].map(o=>`<option ${o===S.sort?"selected":""}>${o}</option>`).join("")}
     </select></div>`;
